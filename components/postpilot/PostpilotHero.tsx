@@ -1,9 +1,52 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import PostpilotMark from "@/components/postpilot/PostpilotMark";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+
+const ROTATING_LINES = [
+  "Schedule once.",
+  "Draft with AI.",
+  "Publish on time.",
+  "Grow on X.",
+] as const;
+
+const slide = {
+  initial: { y: "-110%", opacity: 0 },
+  animate: { y: "0%", opacity: 1 },
+  exit: { y: "110%", opacity: 0 },
+};
+
+function HeroRotatingLine() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setIndex((i) => (i + 1) % ROTATING_LINES.length);
+    }, 2600);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <span className="pp-hero__line pp-hero__line--rotating" aria-live="polite">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={ROTATING_LINES[index]}
+          className="pp-hero__rotating-text"
+          variants={slide}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.55, ease }}
+        >
+          {ROTATING_LINES[index]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
 
 export default function PostpilotHero() {
   return (
@@ -33,15 +76,7 @@ export default function PostpilotHero() {
               Connect your socials.
             </motion.span>
           </span>
-          <span className="pp-hero__line">
-            <motion.span
-              initial={{ y: "105%" }}
-              animate={{ y: "0%" }}
-              transition={{ duration: 0.85, ease, delay: 0.08 }}
-            >
-              Schedule once.
-            </motion.span>
-          </span>
+          <HeroRotatingLine />
         </h1>
 
         <motion.p

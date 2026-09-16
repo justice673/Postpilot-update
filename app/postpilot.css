@@ -445,6 +445,22 @@
   display: block;
 }
 
+.pp-hero__line--rotating {
+  position: relative;
+  display: block;
+  min-height: 1.15em;
+  font-family: var(--pp-sans);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #cfe0fb;
+}
+
+.pp-hero__rotating-text {
+  display: block;
+  width: 100%;
+  color: inherit;
+}
+
 .pp-hero__sub {
   max-width: 42ch;
   margin: 24px auto 0;

@@ -28,10 +28,10 @@ function AdminHeader() {
     (pathname.startsWith("/admin/users/") ? "User detail" : "Admin");
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4 md:px-6">
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="mr-2 h-4" />
-      <div className="flex min-w-0 items-center gap-2 text-sm">
+    <header className="flex h-14 shrink-0 items-center gap-2 overflow-hidden border-b border-border px-3 sm:px-4 md:px-6">
+      <SidebarTrigger className="-ml-1 shrink-0" />
+      <Separator orientation="vertical" className="mr-1 hidden h-4 sm:mr-2 sm:block" />
+      <div className="hidden min-w-0 items-center gap-2 text-sm sm:flex">
         <Link
           href="/admin"
           className="hidden font-medium text-muted-foreground hover:text-foreground md:inline"
@@ -43,13 +43,13 @@ function AdminHeader() {
           {pageLabel}
         </span>
       </div>
-      <div className="ml-auto flex min-w-0 items-center gap-2">
+      <div className="ml-auto flex min-w-0 max-w-full items-center justify-end gap-1.5 sm:gap-2">
         <Suspense
           fallback={
-            <div className="h-9 w-36 shrink-0 rounded-md border border-input bg-white sm:w-44" />
+            <div className="h-9 w-24 shrink rounded-md border border-input bg-white sm:w-44" />
           }
         >
-          <AdminDateRangeFilter />
+          <AdminDateRangeFilter className="min-w-0 shrink" />
         </Suspense>
         <Link
           href="/dashboard/notifications"
@@ -72,7 +72,7 @@ export default function AdminShell({
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <SidebarInset className="bg-[linear-gradient(180deg,#cfe0fb33_0%,#ffffff_28%)]">
+      <SidebarInset className="min-w-0 overflow-x-hidden bg-[linear-gradient(180deg,#cfe0fb33_0%,#ffffff_28%)]">
         <AdminHeader />
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted/40" />}>

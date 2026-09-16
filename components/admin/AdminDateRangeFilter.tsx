@@ -66,6 +66,15 @@ function formatShort(iso: string) {
   });
 }
 
+function formatCompact(iso: string) {
+  const d = parseISODate(iso);
+  if (!d) return iso;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function dayTime(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
@@ -147,10 +156,10 @@ export default function AdminDateRangeFilter({
 
   const label = useMemo(() => {
     if (fromParam && toParam) {
-      return `${formatShort(fromParam)} – ${formatShort(toParam)}`;
+      return `${formatCompact(fromParam)} – ${formatCompact(toParam)}`;
     }
-    if (fromParam) return `From ${formatShort(fromParam)}`;
-    if (toParam) return `Until ${formatShort(toParam)}`;
+    if (fromParam) return `From ${formatCompact(fromParam)}`;
+    if (toParam) return `Until ${formatCompact(toParam)}`;
     return "From – To";
   }, [fromParam, toParam]);
 
@@ -214,7 +223,7 @@ export default function AdminDateRangeFilter({
   }
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex min-w-0 max-w-full items-center gap-1", className)}>
       <Popover
         open={open}
         onOpenChange={(next) => {
@@ -238,15 +247,23 @@ export default function AdminDateRangeFilter({
             type="button"
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
-              "h-9 max-w-[260px] justify-start gap-2 truncate px-3 font-normal shadow-none",
+              "h-9 min-w-0 max-w-[42vw] justify-start gap-1.5 overflow-hidden px-2.5 font-normal shadow-none sm:max-w-[220px] sm:gap-2 sm:px-3",
+              "whitespace-nowrap",
               active ? "text-foreground" : "text-muted-foreground",
             )}
           >
             <PiCalendarBlank className="size-4 shrink-0 text-primary" />
-            <span className="truncate">{label}</span>
+            <span className="min-w-0 flex-1 truncate text-left text-xs sm:text-sm">
+              {label}
+            </span>
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] space-y-3 p-3" align="end">
+        <PopoverContent
+          className="w-[min(300px,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] space-y-3 overflow-hidden p-3"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+        >
           <div>
             <p className="text-sm font-semibold text-foreground">Date range</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -317,7 +334,7 @@ export default function AdminDateRangeFilter({
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
               {cells.map((day) => {
                 const inMonth = day.getMonth() === cursor.getMonth();
                 const isFrom = fromDate ? isSameDay(day, fromDate) : false;
@@ -332,7 +349,7 @@ export default function AdminDateRangeFilter({
                     type="button"
                     onClick={() => selectDay(day)}
                     className={cn(
-                      "flex size-9 items-center justify-center rounded-full text-sm font-medium transition-colors",
+                      "flex aspect-square w-full max-w-9 items-center justify-center justify-self-center rounded-full text-sm font-medium transition-colors",
                       !inMonth && "text-muted-foreground/40",
                       inMonth &&
                         !isEndpoint &&

@@ -1,26 +1,152 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
+  color-scheme: light;
+  --pp-blue: #2b6dcf;
+  --pp-blue-soft: #5595f3;
+  --pp-blue-wash: #cfe0fb;
+  --pp-blue-deep: #1e4f9a;
+  --pp-display: var(--font-newsreader), "Newsreader", Georgia, serif;
+  --pp-sans: "Satoshi", var(--font-dm-sans), system-ui, sans-serif;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #2b6dcf;
+  --primary-foreground: #ffffff;
+  --secondary: #cfe0fb;
+  --secondary-foreground: #1e4f9a;
+  --muted: #eef4fc;
+  --muted-foreground: #525252;
+  --accent: #eef4fc;
+  --accent-foreground: #1e4f9a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(30, 79, 154, 0.14);
+  --input: rgba(30, 79, 154, 0.18);
+  --ring: #2b6dcf;
+  --radius: 0.625rem;
+  --sidebar: #f7faff;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #2b6dcf;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef4fc;
+  --sidebar-accent-foreground: #1e4f9a;
+  --sidebar-border: rgba(30, 79, 154, 0.14);
+  --sidebar-ring: #2b6dcf;
+  --chart-1: #2b6dcf;
+  --chart-2: #5595f3;
+  --chart-3: #1e4f9a;
+  --chart-4: #cfe0fb;
+  --chart-5: #78a4e5;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+}
+
+/* App scrollbar — brand blue */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pp-blue) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--pp-blue);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--pp-blue-deep);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--pp-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+[dir="rtl"] body,
+[dir="rtl"] .display {
+  font-family: var(--font-cairo), "Cairo", "DM Sans", system-ui, sans-serif;
 }

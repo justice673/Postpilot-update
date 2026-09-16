@@ -1,0 +1,176 @@
+/* Sketch arrow + rough annotation helpers */
+
+.sk-arrow {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sk-arrow__label {
+  margin: 0;
+  font-family: "Caveat Brush", "Segoe Print", cursive, system-ui;
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: currentColor;
+  max-width: 14ch;
+  transform: rotate(-6deg);
+}
+
+.sk-arrow__svg {
+  display: block;
+  overflow: visible;
+}
+
+.sk-arrow--animate .sk-arrow__svg path {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: sk-arrow-draw 1.1s ease forwards 0.35s;
+}
+
+.sk-arrow--animate .sk-arrow__label {
+  opacity: 0;
+  animation: sk-arrow-fade 0.5s ease forwards 0.9s;
+}
+
+@keyframes sk-arrow-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sk-arrow-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-arrow--animate .sk-arrow__svg path,
+  .sk-arrow--animate .sk-arrow__label {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+  }
+}
+
+.sk-rough {
+  display: inline-block;
+  position: relative;
+  vertical-align: baseline;
+  overflow: visible;
+  z-index: 1;
+}
+
+.sk-rough--multiline {
+  display: inline;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+svg.rough-annotation {
+  z-index: 0;
+}
+
+/* Showcase section */
+.annotation-showcase {
+  --annotate-accent: #2b6dcf;
+  --annotate-soft: color-mix(in srgb, var(--annotate-accent) 35%, white);
+  --annotate-ink: #111111;
+  --annotate-muted: #525252;
+  --annotate-surface: #fafafa;
+  --annotate-panel: #ffffff;
+
+  padding: 72px 24px;
+  background: var(--annotate-surface);
+  color: var(--annotate-ink);
+}
+
+.annotation-showcase__inner {
+  max-width: 920px;
+  margin-inline: auto;
+}
+
+.annotation-showcase__eyebrow {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--annotate-accent);
+}
+
+.annotation-showcase__title {
+  margin: 0 0 16px;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.annotation-showcase__lead {
+  margin: 0 0 40px;
+  max-width: 54ch;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--annotate-muted);
+}
+
+.annotation-showcase__grid {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 720px) {
+  .annotation-showcase__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.annotation-showcase__card {
+  position: relative;
+  background: var(--annotate-panel);
+  border: 1px solid color-mix(in srgb, var(--annotate-ink) 8%, transparent);
+  border-radius: 16px;
+  padding: 28px 24px;
+  overflow: visible;
+}
+
+.annotation-showcase__label {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--annotate-muted);
+}
+
+.annotation-showcase__sample {
+  margin: 0;
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.annotation-showcase__card--wide {
+  grid-column: 1 / -1;
+}
+
+.annotation-showcase__arrows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px 40px;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.annotation-showcase__footer {
+  margin: 36px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--annotate-muted);
+}

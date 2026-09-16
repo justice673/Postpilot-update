@@ -59,6 +59,7 @@ const itemVariants = {
 
 export default function PostpilotNav() {
   const [open, setOpen] = useState(false);
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -75,12 +76,29 @@ export default function PostpilotNav() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    function onScroll() {
+      setStuck(window.scrollY > 28);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   function close() {
     setOpen(false);
   }
 
+  const navClass = [
+    "pp-nav",
+    open ? "pp-nav--open" : "",
+    stuck ? "pp-nav--stuck" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <header className={`pp-nav${open ? " pp-nav--open" : ""}`}>
+    <header className={navClass}>
       <div className="pp-nav__inner">
         <Link href="/" className="pp-nav__brand" aria-label="Postpilot home">
           <PostpilotMark size={34} />

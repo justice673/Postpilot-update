@@ -53,13 +53,29 @@
   text-decoration: none;
 }
 
-/* Nav over blue hero — light links */
+/* Nav over blue hero — light links; scrolls into a frosted pill (Veeza-style) */
 .pp-nav {
-  position: absolute;
+  position: fixed;
   inset-inline: 0;
   top: 0;
   z-index: 40;
-  height: var(--pp-nav-h);
+  height: auto;
+  min-height: var(--pp-nav-h);
+  padding: 14px 0;
+  pointer-events: none;
+  transition: padding 0.35s ease;
+}
+
+.pp-nav__inner,
+.pp-nav__drawer,
+.pp-nav__menu-btn,
+.pp-nav__brand,
+.pp-nav__links a {
+  pointer-events: auto;
+}
+
+.pp-nav--stuck {
+  padding: 12px 14px;
 }
 
 .pp-nav--open .pp-nav__brand {
@@ -78,7 +94,7 @@
 .pp-nav__inner {
   position: relative;
   z-index: 42;
-  height: 100%;
+  height: 56px;
   max-width: var(--pp-max);
   margin-inline: auto;
   padding-inline: var(--pp-gutter);
@@ -86,6 +102,29 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    max-width 0.35s ease,
+    padding 0.35s ease,
+    background-color 0.35s ease,
+    box-shadow 0.35s ease,
+    border-radius 0.35s ease,
+    backdrop-filter 0.35s ease;
+}
+
+.pp-nav--stuck .pp-nav__inner {
+  max-width: min(920px, 100%);
+  height: 58px;
+  padding: 6px 8px 6px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(1.7) blur(18px);
+  -webkit-backdrop-filter: saturate(1.7) blur(18px);
+  box-shadow:
+    0 10px 30px rgba(17, 17, 17, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .pp-nav__brand {
@@ -99,11 +138,18 @@
   color: #ffffff;
   text-decoration: none;
   flex-shrink: 0;
+  transition: color 0.35s ease;
 }
 
 .pp-nav__brand:hover {
   color: #ffffff;
   opacity: 0.92;
+}
+
+.pp-nav--stuck .pp-nav__brand,
+.pp-nav--stuck .pp-nav__brand:hover {
+  color: var(--pp-ink);
+  opacity: 1;
 }
 
 .pp-nav__links {
@@ -126,7 +172,7 @@
   color: #ffffff;
   padding: 8px 10px;
   opacity: 1;
-  transition: opacity 180ms ease;
+  transition: color 0.35s ease, opacity 180ms ease;
 }
 
 .postpilot-root .pp-nav__link::after {
@@ -137,7 +183,7 @@
   bottom: 4px;
   height: 1.5px;
   border-radius: 999px;
-  background: #ffffff;
+  background: currentColor;
   transform: scaleX(0);
   transform-origin: center;
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -146,6 +192,14 @@
 .postpilot-root .pp-nav__link:hover {
   color: #ffffff;
   opacity: 1;
+}
+
+.postpilot-root .pp-nav--stuck .pp-nav__link {
+  color: var(--pp-ink);
+}
+
+.postpilot-root .pp-nav--stuck .pp-nav__link:hover {
+  color: var(--pp-ink);
 }
 
 .postpilot-root .pp-nav__link:hover::after {
@@ -157,16 +211,35 @@
   align-items: center;
   justify-content: center;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
   background: #111111;
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .postpilot-root .pp-nav__cta:hover {
-  background: #000000;
+  background: var(--pp-blue);
+  border-color: #ffffff;
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(43, 109, 207, 0.35);
+}
+
+.postpilot-root .pp-nav--stuck .pp-nav__cta {
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+.postpilot-root .pp-nav__cta:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(43, 109, 207, 0.25);
 }
 
 .pp-nav__menu-btn {
@@ -176,16 +249,25 @@
   width: 44px;
   height: 44px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  transition: background 160ms ease;
+  transition: background 0.35s ease, color 0.35s ease;
 }
 
 .pp-nav__menu-btn:hover {
   background: rgba(255, 255, 255, 0.22);
+}
+
+.pp-nav--stuck .pp-nav__menu-btn {
+  background: rgba(30, 30, 30, 0.08);
+  color: var(--pp-ink);
+}
+
+.pp-nav--stuck .pp-nav__menu-btn:hover {
+  background: rgba(30, 30, 30, 0.14);
 }
 
 .pp-nav__menu-btn span {
@@ -196,6 +278,16 @@
 @media (min-width: 860px) {
   .pp-nav__menu-btn {
     display: none;
+  }
+}
+
+@media (max-width: 859px) {
+  .pp-nav--stuck {
+    padding: 10px 12px;
+  }
+
+  .pp-nav--stuck .pp-nav__inner {
+    padding: 6px 8px 6px 14px;
   }
 }
 

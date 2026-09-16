@@ -15,6 +15,48 @@ const LINKS = [
   { href: "/login", label: "Log in" },
 ] as const;
 
+const drawerVariants = {
+  hidden: {
+    opacity: 0,
+    y: -24,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease,
+      when: "beforeChildren" as const,
+      staggerChildren: 0.06,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -18,
+    transition: {
+      duration: 0.32,
+      ease,
+      when: "afterChildren" as const,
+      staggerChildren: 0.045,
+      staggerDirection: -1 as const,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 18 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.38, ease },
+  },
+  exit: {
+    opacity: 0,
+    y: 12,
+    transition: { duration: 0.22, ease },
+  },
+};
+
 export default function PostpilotNav() {
   const [open, setOpen] = useState(false);
 
@@ -38,7 +80,7 @@ export default function PostpilotNav() {
   }
 
   return (
-    <header className="pp-nav">
+    <header className={`pp-nav${open ? " pp-nav--open" : ""}`}>
       <div className="pp-nav__inner">
         <Link href="/" className="pp-nav__brand" aria-label="Postpilot home">
           <PostpilotMark size={34} />
@@ -92,55 +134,35 @@ export default function PostpilotNav() {
 
       <AnimatePresence>
         {open ? (
-          <>
-            <motion.button
-              type="button"
-              className="pp-nav__backdrop"
-              aria-label="Close menu"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              onClick={close}
-            />
-            <motion.nav
-              id="pp-mobile-nav"
-              className="pp-nav__drawer"
-              aria-label="Mobile"
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.32, ease }}
-            >
-              <ul className="pp-nav__drawer-list">
-                {LINKS.map((link, i) => (
-                  <motion.li
-                    key={link.href}
-                    initial={{ opacity: 0, x: 16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.35, ease, delay: 0.05 + i * 0.05 }}
-                  >
-                    <a href={link.href} onClick={close}>
-                      {link.label}
-                    </a>
-                  </motion.li>
-                ))}
-              </ul>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease, delay: 0.28 }}
+          <motion.nav
+            key="pp-mobile-nav"
+            id="pp-mobile-nav"
+            className="pp-nav__drawer"
+            aria-label="Mobile"
+            variants={drawerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <ul className="pp-nav__drawer-list">
+              {LINKS.map((link) => (
+                <motion.li key={link.href} variants={itemVariants}>
+                  <a href={link.href} onClick={close}>
+                    {link.label}
+                  </a>
+                </motion.li>
+              ))}
+            </ul>
+            <motion.div variants={itemVariants}>
+              <a
+                className="pp-nav__drawer-cta"
+                href="/register"
+                onClick={close}
               >
-                <a
-                  className="pp-nav__drawer-cta"
-                  href="/register"
-                  onClick={close}
-                >
-                  Start free
-                </a>
-              </motion.div>
-            </motion.nav>
-          </>
+                Start free
+              </a>
+            </motion.div>
+          </motion.nav>
         ) : null}
       </AnimatePresence>
     </header>

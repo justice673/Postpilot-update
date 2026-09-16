@@ -11,10 +11,10 @@ import {
   FiMail,
   FiMapPin,
   FiSlash,
-  FiSparkles,
   FiTrash2,
   FiXCircle,
 } from "react-icons/fi";
+import { HiOutlineSparkles } from "react-icons/hi2";
 import { SiX } from "react-icons/si";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -283,7 +283,7 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
               </div>
               <div className="rounded-xl border border-border bg-muted/20 p-3">
                 <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <FiSparkles className="size-3" />
+                  <HiOutlineSparkles className="size-3" />
                   AI writing
                 </p>
                 <p className="font-medium">

@@ -1099,7 +1099,6 @@ function DayColumn({
         </div>
         <Badge
           variant={posts.length > 0 ? "secondary" : "outline"}
-          className="rounded-md"
         >
           {posts.length}
         </Badge>
@@ -1153,10 +1152,9 @@ function DayColumn({
                       meta.variant === "destructive" ? "outline" : meta.variant
                     }
                     className={cn(
-                      "rounded-md",
                       !isMobile && "scale-90",
                       meta.variant === "destructive" &&
-                        "border-red-200 bg-red-50 text-red-600",
+                        "border-red-500 text-red-600",
                     )}
                   >
                     {meta.label}
@@ -1201,9 +1199,8 @@ function PostRow({
           <Badge
             variant={meta.variant === "destructive" ? "outline" : meta.variant}
             className={cn(
-              "rounded-md",
               meta.variant === "destructive" &&
-                "border-red-200 bg-red-50 text-red-600",
+                "border-red-500 text-red-600",
             )}
           >
             {meta.label}

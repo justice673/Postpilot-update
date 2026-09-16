@@ -11,6 +11,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
+import { FiShield } from "react-icons/fi";
 import { IoCreateOutline } from "react-icons/io5";
 import { MdOutlineSettings } from "react-icons/md";
 import { PiCalendarLight } from "react-icons/pi";
@@ -80,6 +81,16 @@ const navSections = [
         icon: SiGoogleanalytics,
       },
       { href: "/dashboard/settings", label: "Settings", icon: MdOutlineSettings },
+    ],
+  },
+  {
+    title: "Admin",
+    items: [
+      {
+        href: "/admin",
+        label: "Admin panel",
+        icon: FiShield,
+      },
     ],
   },
 ];

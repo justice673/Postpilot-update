@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="emojione:flag-for-greece" clip-path="url(#clip0_0_748)">
+<path id="Vector" d="M14 3.5H8V5H14.875C14.65 4.475 14.35 3.95 14 3.5Z" fill="#428BC1"/>
+<path id="Vector_2" d="M8 3.5H14C13.575 2.925 13.075 2.425 12.5 2H8V3.5ZM14.875 5H8V6.5H15.35C15.25 5.975 15.075 5.475 14.875 5Z" fill="#F9F9F9"/>
+<path id="Vector_3" d="M1.125 11H14.875C15.075 10.525 15.25 10.025 15.35 9.5H0.65C0.75 10.025 0.925 10.525 1.125 11Z" fill="#428BC1"/>
+<path id="Vector_4" d="M2 12.5H14C14.35 12.05 14.65 11.525 14.875 11H1.125C1.35 11.525 1.65 12.05 2 12.5Z" fill="#F9F9F9"/>
+<path id="Vector_5" d="M2 12.5C2.425 13.075 2.925 13.575 3.5 14H12.5C13.075 13.575 13.575 13.075 14 12.5H2Z" fill="#428BC1"/>
+<path id="Vector_6" d="M3.5 14C4.75 14.95 6.3 15.5 8 15.5C9.7 15.5 11.25 14.95 12.5 14H3.5ZM5 8V5H8V3.5H5V1.125C4.475 1.35 3.95 1.65 3.5 2V3.5H2C1.65 3.95 1.35 4.475 1.125 5H3.5V8H0.5C0.5 8.525 0.55 9.025 0.65 9.5H15.35C15.45 9.025 15.5 8.525 15.5 8H5Z" fill="#F9F9F9"/>
+<path id="Vector_7" d="M15.35 6.5H8V5H5V8H15.5C15.5 7.475 15.45 6.975 15.35 6.5ZM8 0.5C6.925 0.5 5.925 0.725 5 1.125V3.5H8V2H12.5C11.25 1.05 9.7 0.5 8 0.5ZM3.5 3.5V2C2.925 2.425 2.425 2.925 2 3.5H3.5ZM1.125 5C0.725 5.925 0.5 6.925 0.5 8H3.5V5H1.125Z" fill="#428BC1"/>
+</g>
+<defs>
+<clipPath id="clip0_0_748">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</svg>

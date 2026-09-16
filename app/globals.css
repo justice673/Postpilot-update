@@ -26,6 +26,9 @@
 
 :root {
   color-scheme: light;
+  --font-dm-sans: "DM Sans";
+  --font-cairo: "Cairo";
+  --font-newsreader: "Newsreader";
   --pp-blue: #2b6dcf;
   --pp-blue-soft: #5595f3;
   --pp-blue-wash: #cfe0fb;

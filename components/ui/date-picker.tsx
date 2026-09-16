@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { PiCalendarBlank } from "react-icons/pi";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -98,12 +98,12 @@ export function DatePicker({
       }}
     >
       <PopoverTrigger asChild>
-        <Button
+        <button
           id={id}
           type="button"
-          variant="outline"
           disabled={disabled}
           className={cn(
+            buttonVariants({ variant: "outline" }),
             "h-10 w-full justify-start rounded-md px-3 font-normal shadow-none",
             !value && "text-muted-foreground",
             className,
@@ -111,7 +111,7 @@ export function DatePicker({
         >
           <PiCalendarBlank className="size-4 shrink-0 text-muted-foreground" />
           {selected ? formatDisplay(selected) : placeholder}
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-[292px] p-3" align="start">
         <div className="mb-3 flex items-center justify-between">

@@ -1,26 +1,6 @@
 import type { Metadata } from "next";
-import { DM_Sans, Cairo, Newsreader } from "next/font/google";
+import "./fonts-google.css";
 import "./globals.css";
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
-
-const cairo = Cairo({
-  subsets: ["arabic", "latin"],
-  variable: "--font-cairo",
-  display: "swap",
-  weight: ["400", "500", "600", "700", "900"],
-});
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  variable: "--font-newsreader",
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   title: "Postpilot — Connect your socials. Schedule once.",
@@ -30,11 +10,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      dir="ltr"
-      className={`${dmSans.variable} ${cairo.variable} ${newsreader.variable}`}
-    >
+    <html lang="en" dir="ltr">
       <body>{children}</body>
     </html>
   );

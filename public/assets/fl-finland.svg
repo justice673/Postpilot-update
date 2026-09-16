@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="emojione:flag-for-finland" clip-path="url(#clip0_0_729)">
+<path id="Vector" d="M15.275 6.25C14.5 2.95 11.525 0.5 8 0.5H7.75V6.25H15.275ZM4.25 1.5C2.5 2.525 1.175 4.225 0.7 6.25H4.25V1.5ZM0.7 9.75C1.175 11.775 2.5 13.475 4.25 14.5V9.75H0.7ZM7.75 15.5H8C11.55 15.5 14.5 13.05 15.3 9.75H7.75V15.5Z" fill="#F9F9F9"/>
+<path id="Vector_2" d="M15.275 6.25H7.75V0.5C6.475 0.55 5.275 0.9 4.25 1.5V6.25H0.7C0.575 6.8 0.5 7.4 0.5 8C0.5 8.6 0.575 9.2 0.7 9.75H4.25V14.5C5.275 15.1 6.475 15.45 7.75 15.5V9.75H15.3C15.425 9.2 15.5 8.6 15.5 8C15.5 7.4 15.425 6.8 15.275 6.25Z" fill="#428BC1"/>
+</g>
+<defs>
+<clipPath id="clip0_0_729">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</svg>

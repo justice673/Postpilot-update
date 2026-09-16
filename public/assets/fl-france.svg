@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="emojione:flag-for-france" clip-path="url(#clip0_0_784)">
+<path id="Vector" d="M0.475 8C0.475 11.275 2.575 14.05 5.475 15.075V0.925C2.575 1.95 0.475 4.725 0.475 8Z" fill="#428BC1"/>
+<path id="Vector_2" d="M15.475 8C15.475 4.725 13.4 1.95 10.475 0.925V15.075C13.4 14.05 15.475 11.275 15.475 8Z" fill="#ED4C5C"/>
+<path id="Vector_3" d="M5.475 15.075C6.25 15.35 7.1 15.5 7.975 15.5C8.85 15.5 9.7 15.35 10.475 15.075V0.925C9.7 0.65 8.875 0.5 7.975 0.5C7.075 0.5 6.25 0.65 5.475 0.925V15.075Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_0_784">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</svg>

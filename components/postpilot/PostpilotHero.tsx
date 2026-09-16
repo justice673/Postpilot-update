@@ -55,7 +55,8 @@ export default function PostpilotHero() {
         </motion.p>
 
         <motion.div
-          className="pp-hero__cta"
+          className="pp-hero__cta flex !flex-row !flex-nowrap items-center justify-center gap-2 sm:gap-5"
+          style={{ display: "flex", flexDirection: "row", flexWrap: "nowrap" }}
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease, delay: 0.42 }}
@@ -64,7 +65,8 @@ export default function PostpilotHero() {
             Start free
           </a>
           <a className="pp-btn pp-btn--ghost" href="#how">
-            See how it works
+            <span className="pp-hero__cta-label-full">See how it works</span>
+            <span className="pp-hero__cta-label-short">How it works</span>
           </a>
         </motion.div>
       </div>

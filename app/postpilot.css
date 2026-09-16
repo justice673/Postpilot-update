@@ -387,6 +387,10 @@
   }
 }
 
+.pp-hero__cta .pp-btn--ghost .pp-hero__cta-label-short {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .pp-hero__cta {
     gap: 8px;
@@ -404,6 +408,10 @@
     white-space: nowrap;
   }
 
+  .pp-hero__cta .pp-btn--ghost {
+    color: #ffffff;
+  }
+
   .pp-hero__cta .pp-btn--ghost .pp-hero__cta-label-full {
     display: none;
   }
@@ -411,10 +419,6 @@
   .pp-hero__cta .pp-btn--ghost .pp-hero__cta-label-short {
     display: inline;
   }
-}
-
-.pp-hero__cta .pp-btn--ghost .pp-hero__cta-label-short {
-  display: none;
 }
 
 .pp-btn {

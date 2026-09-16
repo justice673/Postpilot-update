@@ -19,7 +19,7 @@ export default function PostpilotCta() {
         <div className="pp-cta__bg" aria-hidden>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/postpilot/cta/horizon-banner.jpg"
+            src="/postpilot/cta/cta-wash.jpg?v=4"
             alt=""
             className="pp-cta__bg-img"
           />
@@ -28,9 +28,9 @@ export default function PostpilotCta() {
 
         <div className="pp-cta__row">
           <h2 id="pp-cta-title">
-            Start your Postpilot
+            Start scheduling
             <br />
-            journey today
+            with Postpilot
           </h2>
           <Link href="/register" className="pp-cta__btn">
             Get started free

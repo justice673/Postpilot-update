@@ -1350,7 +1350,7 @@
   background: #000;
 }
 
-/* ——— CTA (Gopaddi-style horizon panel) ——— */
+/* ——— CTA ——— */
 .pp-cta {
   padding: 24px var(--pp-gutter) 72px;
   background: #fff;
@@ -1360,34 +1360,38 @@
   position: relative;
   max-width: var(--pp-max);
   margin-inline: auto;
-  min-height: 220px;
+  min-height: 240px;
   border-radius: 24px;
   overflow: hidden;
   color: #fff;
+  background: #1e4f9a;
 }
 
 .pp-cta__bg {
   position: absolute;
   inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .pp-cta__bg-img {
+  position: absolute;
+  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 45%;
-  display: block;
-  transform: scale(1.02);
+  object-position: center;
 }
 
 .pp-cta__bg-shade {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    100deg,
-    rgba(11, 24, 48, 0.62) 0%,
-    rgba(30, 79, 154, 0.32) 48%,
-    rgba(11, 24, 48, 0.22) 100%
+    105deg,
+    rgba(16, 42, 90, 0.18) 0%,
+    rgba(43, 109, 207, 0.04) 55%,
+    rgba(16, 42, 90, 0.12) 100%
   );
 }
 

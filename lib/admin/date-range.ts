@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { isIsoInRange as isIsoInRangeShared } from "@/lib/date-range";
 
 export type AdminDateRange = {
   from: string;
@@ -11,10 +12,7 @@ export type AdminDateRange = {
 
 /** Inclusive calendar-day check against an ISO timestamp. */
 export function isIsoInRange(iso: string, from: string, to: string) {
-  const day = iso.slice(0, 10);
-  if (from && day < from) return false;
-  if (to && day > to) return false;
-  return true;
+  return isIsoInRangeShared(iso, from, to);
 }
 
 export function useAdminDateRange(): AdminDateRange {

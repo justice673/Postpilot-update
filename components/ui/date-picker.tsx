@@ -20,6 +20,8 @@ type DatePickerProps = {
   id?: string;
   placeholder?: string;
   className?: string;
+  /** YYYY-MM-DD inclusive minimum selectable day */
+  min?: string;
 };
 
 function parseISODate(value: string) {
@@ -78,8 +80,10 @@ export function DatePicker({
   id,
   placeholder = "Pick a date",
   className,
+  min,
 }: DatePickerProps) {
   const selected = parseISODate(value);
+  const minDate = parseISODate(min ?? "");
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(() =>
     startOfMonth(selected ?? new Date()),
@@ -155,20 +159,29 @@ export function DatePicker({
             const inMonth = day.getMonth() === cursor.getMonth();
             const isSelected = selected ? isSameDay(day, selected) : false;
             const isToday = isSameDay(day, today);
+            const beforeMin = minDate
+              ? day.getTime() < minDate.getTime()
+              : false;
 
             return (
               <button
                 key={day.toISOString()}
                 type="button"
+                disabled={beforeMin}
                 onClick={() => {
+                  if (beforeMin) return;
                   onChange(toISODate(day));
                   setOpen(false);
                 }}
                 className={cn(
                   "flex size-9 items-center justify-center rounded-full text-sm font-medium transition-colors",
                   !inMonth && "text-muted-foreground/40",
-                  inMonth && !isSelected && "text-foreground hover:bg-muted",
-                  isToday && !isSelected && "bg-muted text-primary",
+                  beforeMin && "cursor-not-allowed opacity-35",
+                  inMonth &&
+                    !isSelected &&
+                    !beforeMin &&
+                    "text-foreground hover:bg-muted",
+                  isToday && !isSelected && !beforeMin && "bg-muted text-primary",
                   isSelected &&
                     "bg-primary text-primary-foreground hover:bg-primary",
                 )}

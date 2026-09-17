@@ -11,11 +11,13 @@ export type AdminUser = {
   timezone: string;
   aiWritingEnabled: boolean;
   bio: string | null;
+  avatarUrl?: string | null;
   createdAt: string;
   postCount: number;
   pendingCount: number;
   postedCount: number;
   failedCount: number;
+  suspended?: boolean;
 };
 
 export type AdminPost = {

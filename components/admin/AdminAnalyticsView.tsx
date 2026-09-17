@@ -15,6 +15,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import AdminStatCards from "@/components/admin/AdminStatCards";
 import {
   Card,
   CardContent,
@@ -30,18 +31,14 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import {
-  adminPostingTimes,
-  adminSignups,
-  adminWeeklyPosts,
-  getAdminActivitySeries,
-  getAdminOverview,
-} from "@/lib/admin/mock-data";
-import { useAdminDateRange } from "@/lib/admin/date-range";
+import type {
+  AdminAnalyticsData,
+  AdminOverview as AdminOverviewData,
+} from "@/lib/types/admin";
+import type { DashboardChartPoint } from "@/lib/types/analytics";
 import { FiTrendingUp } from "react-icons/fi";
 import { PiCheckCircle, PiUsersThree } from "react-icons/pi";
 import { SiX } from "react-icons/si";
-import AdminStatCards from "@/components/admin/AdminStatCards";
 
 const activityConfig = {
   scheduled: { label: "Scheduled", color: "#5595f3" },
@@ -61,52 +58,118 @@ const timeConfig = {
   count: { label: "Posts", color: "#2b6dcf" },
 } satisfies ChartConfig;
 
-export default function AdminAnalyticsView() {
-  const range = useAdminDateRange();
-  const overview = useMemo(
-    () => getAdminOverview({ from: range.from, to: range.to }),
-    [range.from, range.to],
+const STATUS_COLORS: Record<string, string> = {
+  Pending: "#5595f3",
+  Published: "#10b981",
+  Failed: "#ef4444",
+  Connected: "#2b6dcf",
+  "Not connected": "#94a3b8",
+  Success: "#10b981",
+};
+
+function formatAxisDate(value: string) {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatTooltipDate(value: string) {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export default function AdminAnalyticsView({
+  overview,
+  activity,
+  analytics,
+  rangeActive = false,
+  rangeLabel = null,
+}: {
+  overview: AdminOverviewData;
+  activity: DashboardChartPoint[];
+  analytics: AdminAnalyticsData;
+  rangeActive?: boolean;
+  rangeLabel?: string | null;
+}) {
+  const successRate = analytics.successRate;
+  const signupTotal = analytics.userSignups.reduce(
+    (sum, d) => sum + d.scheduled,
+    0,
   );
-  const activity = useMemo(
-    () => getAdminActivitySeries({ from: range.from, to: range.to }),
-    [range.from, range.to],
+
+  const activityYMax = useMemo(() => {
+    const peak = activity.reduce(
+      (max, point) => Math.max(max, point.scheduled + point.published),
+      0,
+    );
+    return Math.max(peak, 1);
+  }, [activity]);
+
+  const weeklyYMax = useMemo(() => {
+    const peak = analytics.weeklyPosts.reduce(
+      (max, day) => Math.max(max, day.posted + day.failed),
+      0,
+    );
+    return Math.max(peak, 1);
+  }, [analytics.weeklyPosts]);
+
+  const signupYMax = useMemo(() => {
+    const peak = analytics.userSignups.reduce(
+      (max, day) => Math.max(max, day.scheduled),
+      0,
+    );
+    return Math.max(peak, 1);
+  }, [analytics.userSignups]);
+
+  const timesYMax = useMemo(() => {
+    const peak = analytics.postingTimes.reduce(
+      (max, slot) => Math.max(max, slot.count),
+      0,
+    );
+    return Math.max(peak, 1);
+  }, [analytics.postingTimes]);
+
+  const hasWeeklyData = analytics.weeklyPosts.some(
+    (d) => d.posted > 0 || d.failed > 0,
   );
+  const hasTimeData = analytics.postingTimes.some((slot) => slot.count > 0);
+  const hasDeliveryData =
+    analytics.weeklyTotal > 0 ||
+    analytics.monthlyTotal > 0 ||
+    successRate > 0 ||
+    analytics.postStatusBreakdown.some((item) => item.value > 0);
 
-  const weeklyPosted = adminWeeklyPosts.reduce((sum, d) => sum + d.posted, 0);
-  const successRate =
-    overview.postedPosts + overview.failedPosts === 0
-      ? 0
-      : Math.round(
-          (overview.postedPosts /
-            (overview.postedPosts + overview.failedPosts)) *
-            100,
-        );
-  const signupTotal = adminSignups.reduce((sum, d) => sum + d.signups, 0);
+  const statusPie = analytics.postStatusBreakdown.map((item) => ({
+    name: item.name,
+    value: item.value,
+    fill:
+      STATUS_COLORS[item.name] ??
+      (item.status === "pending"
+        ? "#5595f3"
+        : item.status === "posted"
+          ? "#10b981"
+          : "#ef4444"),
+  }));
 
-  const statusPie = [
-    { name: "Pending", value: overview.pendingPosts, fill: "#5595f3" },
-    { name: "Published", value: overview.postedPosts, fill: "#10b981" },
-    { name: "Failed", value: overview.failedPosts, fill: "#ef4444" },
-  ];
-
-  const xPie = [
-    { name: "Connected", value: overview.xConnectedUsers, fill: "#2b6dcf" },
-    {
-      name: "Not connected",
-      value: Math.max(overview.totalUsers - overview.xConnectedUsers, 0),
-      fill: "#94a3b8",
-    },
-  ];
+  const xPie = analytics.xConnectionBreakdown.map((item) => ({
+    name: item.name,
+    value: item.value,
+    fill: STATUS_COLORS[item.name] ?? "#94a3b8",
+  }));
 
   const successPie = [
     { name: "Success", value: successRate, fill: "#10b981" },
     { name: "Failed", value: Math.max(100 - successRate, 0), fill: "#ef4444" },
-  ];
+  ].filter((d) => d.value > 0);
 
   const stats = [
     {
-      label: range.active ? "Published in range" : "Published this week",
-      value: range.active ? overview.postedPosts : weeklyPosted,
+      label: rangeActive ? "Published in range" : "Published this week",
+      value: rangeActive ? overview.postedPosts : analytics.weeklyTotal,
       hint: "All users",
       icon: PiCheckCircle,
     },
@@ -118,8 +181,8 @@ export default function AdminAnalyticsView() {
     },
     {
       label: "New signups",
-      value: range.active ? overview.totalUsers : signupTotal,
-      hint: range.active ? "In selected range" : "Last 30 days",
+      value: signupTotal,
+      hint: rangeActive && rangeLabel ? rangeLabel : "Last 30 days",
       icon: PiUsersThree,
     },
     {
@@ -140,8 +203,9 @@ export default function AdminAnalyticsView() {
           Analytics
         </h1>
         <p className="mt-2 max-w-2xl text-[15px] text-muted-foreground">
-          Deep system metrics across delivery, signups, and posting times
-          {range.active ? " for the selected date range" : ""}.
+          {rangeActive && rangeLabel
+            ? `Deep system metrics for ${rangeLabel}.`
+            : "Deep system metrics across delivery, signups, and posting times."}
         </p>
       </div>
 
@@ -152,100 +216,180 @@ export default function AdminAnalyticsView() {
           <CardTitle>System post activity</CardTitle>
           <CardDescription>
             All users — scheduled vs published
-            {range.active ? " in range" : " over time"}
+            {rangeActive && rangeLabel
+              ? ` · ${rangeLabel}`
+              : " over the last 30 days"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={activityConfig} className="aspect-auto h-[280px] min-h-[280px] w-full">
-            <AreaChart data={activity}>
-              <defs>
-                <linearGradient id="fillScheduled" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
-                </linearGradient>
-                <linearGradient id="fillPublished" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Area
-                type="monotone"
-                dataKey="scheduled"
-                stroke="var(--color-scheduled)"
-                fill="url(#fillScheduled)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="published"
-                stroke="var(--color-published)"
-                fill="url(#fillPublished)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ChartContainer>
+          {activity.length === 0 ? (
+            <p className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              No activity in this period yet.
+            </p>
+          ) : (
+            <ChartContainer
+              config={activityConfig}
+              className="aspect-auto h-[280px] min-h-[280px] w-full"
+            >
+              <AreaChart
+                data={activity}
+                margin={{ left: 8, right: 8, top: 8 }}
+              >
+                <defs>
+                  <linearGradient id="fillScheduledA" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="fillPublishedA" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={28}
+                  tickFormatter={formatAxisDate}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  width={32}
+                  domain={[0, activityYMax]}
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(value) =>
+                        formatTooltipDate(String(value))
+                      }
+                    />
+                  }
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Area
+                  type="linear"
+                  dataKey="scheduled"
+                  stroke="var(--color-scheduled)"
+                  fill="url(#fillScheduledA)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="linear"
+                  dataKey="published"
+                  stroke="var(--color-published)"
+                  fill="url(#fillPublishedA)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ChartContainer>
+          )}
         </CardContent>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="shadow-none">
           <CardHeader>
-            <CardTitle>Posts this week</CardTitle>
+            <CardTitle>
+              {rangeActive ? "Posts by weekday" : "Posts this week"}
+            </CardTitle>
             <CardDescription>
               System-wide published vs failed by day
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={weeklyConfig} className="aspect-auto h-[260px] min-h-[260px] w-full">
-              <BarChart data={adminWeeklyPosts}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar
-                  dataKey="posted"
-                  fill="var(--color-posted)"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="failed"
-                  fill="var(--color-failed)"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ChartContainer>
+            {!hasWeeklyData ? (
+              <p className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+                No published or failed posts in this period yet.
+              </p>
+            ) : (
+              <ChartContainer
+                config={weeklyConfig}
+                className="aspect-auto h-[260px] min-h-[260px] w-full"
+              >
+                <BarChart data={analytics.weeklyPosts}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                    domain={[0, weeklyYMax]}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar
+                    dataKey="posted"
+                    fill="var(--color-posted)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="failed"
+                    fill="var(--color-failed)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
         <Card className="shadow-none">
           <CardHeader>
             <CardTitle>Delivery success rate</CardTitle>
-            <CardDescription>Posted vs failed across all users</CardDescription>
+            <CardDescription>
+              Posted vs failed across all users
+              {rangeActive ? " in range" : ""}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <ChartContainer config={{}} className="aspect-square mx-auto h-[240px] min-h-[240px] w-full max-w-[260px]">
-              <PieChart>
-                <Pie
-                  data={successPie}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={58}
-                  outerRadius={92}
-                  paddingAngle={3}
+          <CardContent className="flex flex-col items-center gap-3 pb-6">
+            {!hasDeliveryData || successPie.length === 0 ? (
+              <p className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+                No completed posts to measure yet.
+              </p>
+            ) : (
+              <>
+                <ChartContainer
+                  config={{}}
+                  className="aspect-square mx-auto h-[240px] min-h-[240px] w-full max-w-[260px]"
                 >
-                  {successPie.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-              </PieChart>
-            </ChartContainer>
+                  <PieChart>
+                    <Pie
+                      data={successPie}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={58}
+                      outerRadius={92}
+                      paddingAngle={3}
+                      strokeWidth={0}
+                    >
+                      {successPie.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip
+                      content={<ChartTooltipContent nameKey="name" />}
+                    />
+                  </PieChart>
+                </ChartContainer>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="inline-flex items-center gap-2 font-medium">
+                    <span className="size-2.5 rounded-full bg-emerald-500" />
+                    Success {successRate}%
+                  </span>
+                  <span className="inline-flex items-center gap-2 font-medium text-muted-foreground">
+                    <span className="size-2.5 rounded-full bg-red-500" />
+                    Failed {Math.max(100 - successRate, 0)}%
+                  </span>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -255,23 +399,35 @@ export default function AdminAnalyticsView() {
             <CardDescription>Pending, published, and failed</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <ChartContainer config={{}} className="aspect-square mx-auto h-[240px] min-h-[240px] w-full max-w-[260px]">
-              <PieChart>
-                <Pie
-                  data={statusPie}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={58}
-                  outerRadius={92}
-                  paddingAngle={3}
-                >
-                  {statusPie.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-              </PieChart>
-            </ChartContainer>
+            {statusPie.length === 0 ? (
+              <p className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+                No posts in this period yet.
+              </p>
+            ) : (
+              <ChartContainer
+                config={{}}
+                className="aspect-square mx-auto h-[240px] min-h-[240px] w-full max-w-[260px]"
+              >
+                <PieChart>
+                  <Pie
+                    data={statusPie}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={92}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                  >
+                    {statusPie.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={<ChartTooltipContent nameKey="name" />}
+                  />
+                </PieChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -281,23 +437,35 @@ export default function AdminAnalyticsView() {
             <CardDescription>Users with X linked vs not</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <ChartContainer config={{}} className="aspect-square mx-auto h-[240px] min-h-[240px] w-full max-w-[260px]">
-              <PieChart>
-                <Pie
-                  data={xPie}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={58}
-                  outerRadius={92}
-                  paddingAngle={3}
-                >
-                  {xPie.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-              </PieChart>
-            </ChartContainer>
+            {xPie.length === 0 ? (
+              <p className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+                No users to show yet.
+              </p>
+            ) : (
+              <ChartContainer
+                config={{}}
+                className="aspect-square mx-auto h-[240px] min-h-[240px] w-full max-w-[260px]"
+              >
+                <PieChart>
+                  <Pie
+                    data={xPie}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={92}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                  >
+                    {xPie.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={<ChartTooltipContent nameKey="name" />}
+                  />
+                </PieChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -305,31 +473,72 @@ export default function AdminAnalyticsView() {
           <CardHeader>
             <CardTitle>User signups</CardTitle>
             <CardDescription>
-              New registrations over the last 30 days
+              {rangeActive && rangeLabel
+                ? `New registrations · ${rangeLabel}`
+                : "New registrations over the last 30 days"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={signupConfig} className="aspect-auto h-[260px] min-h-[260px] w-full">
-              <AreaChart data={adminSignups}>
-                <defs>
-                  <linearGradient id="fillSignups" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.7} />
-                    <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area
-                  type="monotone"
-                  dataKey="signups"
-                  stroke="var(--color-signups)"
-                  fill="url(#fillSignups)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ChartContainer>
+            {analytics.userSignups.length === 0 ? (
+              <p className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+                No signup data in this period.
+              </p>
+            ) : (
+              <ChartContainer
+                config={signupConfig}
+                className="aspect-auto h-[260px] min-h-[260px] w-full"
+              >
+                <AreaChart
+                  data={analytics.userSignups.map((d) => ({
+                    date: d.date,
+                    signups: d.scheduled,
+                  }))}
+                >
+                  <defs>
+                    <linearGradient id="fillSignups" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.7} />
+                      <stop
+                        offset="95%"
+                        stopColor="#2b6dcf"
+                        stopOpacity={0.05}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    minTickGap={28}
+                    tickFormatter={formatAxisDate}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                    domain={[0, signupYMax]}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(value) =>
+                          formatTooltipDate(String(value))
+                        }
+                      />
+                    }
+                  />
+                  <Area
+                    type="linear"
+                    dataKey="signups"
+                    stroke="var(--color-signups)"
+                    fill="url(#fillSignups)"
+                    strokeWidth={2}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -338,24 +547,41 @@ export default function AdminAnalyticsView() {
             <CardTitle>Peak posting times</CardTitle>
             <CardDescription>
               When posts go live most often across all users
+              {analytics.bestTime !== "—"
+                ? ` · peak ${analytics.bestTime}`
+                : ""}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={timeConfig} className="aspect-auto h-[260px] min-h-[260px] w-full">
-              <LineChart data={adminPostingTimes}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="hour" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="var(--color-count)"
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: "#2b6dcf" }}
-                />
-              </LineChart>
-            </ChartContainer>
+            {!hasTimeData ? (
+              <p className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+                Publish a few posts to unlock timing insights.
+              </p>
+            ) : (
+              <ChartContainer
+                config={timeConfig}
+                className="aspect-auto h-[260px] min-h-[260px] w-full"
+              >
+                <LineChart data={analytics.postingTimes}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="hour" tickLine={false} axisLine={false} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                    domain={[0, timesYMax]}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="var(--color-count)"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: "#2b6dcf" }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
       </div>

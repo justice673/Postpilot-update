@@ -5,21 +5,44 @@ import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import { HiOutlineEnvelope } from "react-icons/hi2";
 import PostpilotAuthShell from "@/components/postpilot/PostpilotAuthShell";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function PostpilotForgot() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    window.setTimeout(() => {
+    setError("");
+
+    const supabase = createClient();
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: `${window.location.origin}/login`,
+      },
+    );
+
+    if (resetError) {
+      setError(resetError.message);
+      toast.error("Couldn’t send reset link", {
+        description: resetError.message,
+      });
       setLoading(false);
-      setSent(true);
-    }, 900);
+      return;
+    }
+
+    setLoading(false);
+    setSent(true);
+    toast.success("Reset link sent", {
+      description: "Check your inbox for the next step.",
+    });
   }
 
   return (
@@ -74,6 +97,8 @@ export default function PostpilotForgot() {
               />
             </div>
           </label>
+
+          {error ? <p className="pp-login__error">{error}</p> : null}
 
           <button
             type="submit"

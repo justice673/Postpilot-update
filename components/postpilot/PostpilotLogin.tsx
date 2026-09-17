@@ -11,23 +11,44 @@ import {
   HiOutlineLockClosed,
 } from "react-icons/hi2";
 import PostpilotAuthShell from "@/components/postpilot/PostpilotAuthShell";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function PostpilotLogin() {
+export default function PostpilotLogin({
+  signupsClosed = false,
+}: {
+  signupsClosed?: boolean;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    window.setTimeout(() => {
+    setError("");
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
+      setError(authError.message);
+      toast.error("Sign in failed", { description: authError.message });
       setLoading(false);
-      router.push("/dashboard");
-    }, 700);
+      return;
+    }
+
+    toast.success("Welcome back");
+    router.push("/onboarding/connect");
+    router.refresh();
   }
 
   return (
@@ -42,6 +63,12 @@ export default function PostpilotLogin() {
         <p className="pp-login__panel-sub">
           Use your email, then connect X on the next screen.
         </p>
+        {signupsClosed ? (
+          <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            New signups are currently closed. Existing accounts can still sign
+            in.
+          </p>
+        ) : null}
       </motion.div>
 
       <motion.form
@@ -100,6 +127,8 @@ export default function PostpilotLogin() {
           </div>
         </label>
 
+        {error ? <p className="pp-login__error">{error}</p> : null}
+
         <button
           type="submit"
           className="pp-btn pp-btn--primary pp-login__submit"
@@ -115,10 +144,16 @@ export default function PostpilotLogin() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.45, duration: 0.5 }}
       >
-        New here?{" "}
-        <Link href="/register" className="pp-login__link">
-          Start free
-        </Link>
+        {signupsClosed ? (
+          "New accounts can’t be created right now."
+        ) : (
+          <>
+            New here?{" "}
+            <Link href="/register" className="pp-login__link">
+              Start free
+            </Link>
+          </>
+        )}
       </motion.p>
     </PostpilotAuthShell>
   );

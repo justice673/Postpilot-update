@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronDown, FiChevronLeft, FiChevronRight, FiList } from "react-icons/fi";
 import { GoPencil, GoTrash } from "react-icons/go";
-import { HiOutlineBars3 } from "react-icons/hi2";
+import { HiOutlineBars3, HiOutlineEye } from "react-icons/hi2";
 import { IoCreateOutline } from "react-icons/io5";
 import { PiCalendarBlank, PiCalendarDots } from "react-icons/pi";
 import { SiX } from "react-icons/si";
@@ -21,6 +21,14 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -31,6 +39,21 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
+import {
+  deletePostAction,
+  reschedulePostAction,
+  updatePostAction,
+} from "@/app/dashboard/schedule/actions";
+import type { ScheduledPost as BackendScheduledPost } from "@/lib/types/posts";
+import { toast } from "sonner";
+import {
+  calendarDateKey,
+  isPastCalendarDay,
+  isSameCalendarDayInZone,
+  isTodayCalendarDay,
+  resolveUserTimeZone,
+} from "@/lib/timezone";
+import { DEFAULT_TIMEZONE } from "@/lib/types/profile";
 
 type PostStatus = "pending" | "posted" | "failed";
 
@@ -134,89 +157,14 @@ function monthGrid(month: Date) {
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
-function seedPosts(): ScheduledPost[] {
-  const now = new Date();
-  const at = (dayOffset: number, hour: number, minute: number) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() + dayOffset);
-    d.setHours(hour, minute, 0, 0);
-    return d.toISOString();
+function toUiPost(post: BackendScheduledPost): ScheduledPost {
+  return {
+    id: post.id,
+    content: post.content,
+    scheduledAt: post.scheduledAt,
+    status: post.status,
+    hasImage: post.hasImage,
   };
-
-  return [
-    {
-      id: "1",
-      content:
-        "Shipping the new compose flow this week — here’s what’s new for X creators.",
-      scheduledAt: at(0, 9, 0),
-      status: "pending",
-    },
-    {
-      id: "2",
-      content:
-        "Most scheduling tools are calendars with lipstick. We built a queue.",
-      scheduledAt: at(0, 13, 30),
-      status: "pending",
-      hasImage: true,
-    },
-    {
-      id: "3",
-      content: "Hot take on shipping in public — keep it sharp, under 280.",
-      scheduledAt: at(0, 11, 15),
-      status: "pending",
-    },
-    {
-      id: "4",
-      content:
-        "Three wins, one miss, and what we’re shipping next Monday.",
-      scheduledAt: at(1, 18, 0),
-      status: "pending",
-    },
-    {
-      id: "5",
-      content: "Thread: how we cut draft time in half with Gemini prompts.",
-      scheduledAt: at(2, 10, 0),
-      status: "pending",
-      hasImage: true,
-    },
-    {
-      id: "6",
-      content: "Posted yesterday — still picking up replies. Appreciate y’all.",
-      scheduledAt: at(-1, 16, 20),
-      status: "posted",
-    },
-    {
-      id: "7",
-      content: "Couldn’t publish — reconnect X and try again.",
-      scheduledAt: at(-2, 12, 0),
-      status: "failed",
-    },
-    {
-      id: "8",
-      content: "Friday wrap: ship notes + one meme for the timeline.",
-      scheduledAt: at(4, 15, 45),
-      status: "pending",
-    },
-    {
-      id: "9",
-      content: "Weekend drop: behind-the-scenes from the compose desk.",
-      scheduledAt: at(6, 12, 0),
-      status: "pending",
-    },
-    {
-      id: "10",
-      content: "Mid-month recap — what moved the needle on X.",
-      scheduledAt: at(10, 9, 30),
-      status: "pending",
-    },
-    {
-      id: "11",
-      content: "Launch teaser thread. Keep the first line sticky.",
-      scheduledAt: at(14, 17, 0),
-      status: "pending",
-      hasImage: true,
-    },
-  ];
 }
 
 const statusBadge: Record<
@@ -228,10 +176,21 @@ const statusBadge: Record<
   failed: { label: "Failed", variant: "destructive" },
 };
 
-export default function ScheduleView() {
+export default function ScheduleView({
+  initialPosts = [],
+  timeZone,
+}: {
+  initialPosts?: BackendScheduledPost[];
+  timeZone?: string | null;
+}) {
+  const userTimeZone = resolveUserTimeZone(
+    timeZone && timeZone !== DEFAULT_TIMEZONE ? timeZone : null,
+  );
   const carouselRef = useRef<HTMLDivElement>(null);
   const rangeMenuRef = useRef<HTMLDivElement>(null);
-  const [posts, setPosts] = useState<ScheduledPost[]>(seedPosts);
+  const [posts, setPosts] = useState<ScheduledPost[]>(() =>
+    initialPosts.map(toUiPost),
+  );
   const [range, setRange] = useState<RangeMode>("month");
   const [view, setView] = useState<ViewMode>("calendar");
   const [rangeOpen, setRangeOpen] = useState(false);
@@ -245,8 +204,9 @@ export default function ScheduleView() {
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [editing, setEditing] = useState<ScheduledPost | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [viewing, setViewing] = useState<ScheduledPost | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [monthDir, setMonthDir] = useState(0);
   const [dropDayKey, setDropDayKey] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -279,20 +239,25 @@ export default function ScheduleView() {
   const selectedPosts = useMemo(
     () =>
       posts
-        .filter((p) => isSameDay(new Date(p.scheduledAt), selectedDay))
+        .filter((p) =>
+          isSameCalendarDayInZone(p.scheduledAt, selectedDay, userTimeZone),
+        )
         .sort(
           (a, b) =>
             new Date(a.scheduledAt).getTime() -
             new Date(b.scheduledAt).getTime(),
         ),
-    [posts, selectedDay],
+    [posts, selectedDay, userTimeZone],
+  );
+
+  const selectedDayIsPast = useMemo(
+    () => isPastCalendarDay(selectedDay, userTimeZone),
+    [selectedDay, userTimeZone],
   );
 
   useEffect(() => {
-    if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 2200);
-    return () => window.clearTimeout(t);
-  }, [toast]);
+    setPosts(initialPosts.map(toUiPost));
+  }, [initialPosts]);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -317,7 +282,7 @@ export default function ScheduleView() {
   useEffect(() => {
     const carousel = carouselRef.current;
     if (!carousel || range !== "week") return;
-    const todayIndex = weekDays.findIndex((day) => isSameDay(day, new Date()));
+    const todayIndex = weekDays.findIndex((day) => isTodayCalendarDay(day, userTimeZone));
     if (todayIndex < 0) return;
     const card = carousel.children[todayIndex] as HTMLElement | undefined;
     card?.scrollIntoView({
@@ -329,51 +294,73 @@ export default function ScheduleView() {
 
   function postsForDay(date: Date) {
     return posts
-      .filter((p) => isSameDay(new Date(p.scheduledAt), date))
+      .filter((p) =>
+        isSameCalendarDayInZone(p.scheduledAt, date, userTimeZone),
+      )
       .sort(
         (a, b) =>
           new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
       );
   }
 
-  function flash(message: string) {
-    setToast(message);
+  function flash(message: string, kind: "success" | "error" = "success") {
+    if (kind === "error") toast.error(message);
+    else toast.success(message);
   }
 
   function openEdit(post: ScheduledPost) {
+    if (post.status === "posted") {
+      setViewing(post);
+      setDetailsOpen(true);
+      return;
+    }
     setEditing(post);
     setEditOpen(true);
   }
 
-  function handleDelete(id: string) {
-    setPendingId(id);
-    window.setTimeout(() => {
-      setPosts((prev) => prev.filter((p) => p.id !== id));
-      setPendingId(null);
-      if (editing?.id === id) {
-        setEditOpen(false);
-        setEditing(null);
-      }
-      flash("Post deleted");
-    }, 280);
+  function openDetails(post: ScheduledPost) {
+    setViewing(post);
+    setDetailsOpen(true);
   }
 
-  function handleSaveEdit(updated: ScheduledPost) {
-    setPendingId(updated.id);
-    window.setTimeout(() => {
-      setPosts((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p)),
-      );
-      setPendingId(null);
+  async function handleDelete(id: string) {
+    setPendingId(id);
+    const result = await deletePostAction(id);
+    setPendingId(null);
+    if (!result.success) {
+      flash(result.error, "error");
+      return;
+    }
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    if (editing?.id === id) {
       setEditOpen(false);
       setEditing(null);
-      setSelectedDay(() => {
-        const d = new Date(updated.scheduledAt);
-        d.setHours(0, 0, 0, 0);
-        return d;
-      });
-      flash("Post updated");
-    }, 320);
+    }
+    flash("Post deleted");
+  }
+
+  async function handleSaveEdit(updated: ScheduledPost) {
+    setPendingId(updated.id);
+    const result = await updatePostAction(updated.id, {
+      content: updated.content,
+      scheduledAt: updated.scheduledAt,
+      status: updated.status,
+    });
+    setPendingId(null);
+    if (!result.success) {
+      flash(result.error, "error");
+      return;
+    }
+    const saved = toUiPost(result.data);
+    setPosts((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
+    setEditOpen(false);
+    setEditing(null);
+    setSelectedDay(() => {
+      const d = new Date(saved.scheduledAt);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+    flash("Post updated");
   }
 
   function handleDragStart(e: React.DragEvent, id: string) {
@@ -387,7 +374,7 @@ export default function ScheduleView() {
     setDropDayKey(null);
   }
 
-  function handleDrop(e: React.DragEvent, targetDate: Date) {
+  async function handleDrop(e: React.DragEvent, targetDate: Date) {
     e.preventDefault();
     setDropDayKey(null);
     setDraggingId(null);
@@ -402,21 +389,28 @@ export default function ScheduleView() {
     next.setMonth(targetDate.getMonth());
     next.setDate(targetDate.getDate());
 
-    // No-op if dropped on the same day
-    if (isSameDay(new Date(post.scheduledAt), targetDate)) return;
+    // No-op if dropped on the same day (in user timezone)
+    if (isSameCalendarDayInZone(post.scheduledAt, targetDate, userTimeZone)) {
+      return;
+    }
+
+    if (isPastCalendarDay(targetDate, userTimeZone)) {
+      flash("Can’t move a post onto a past day", "error");
+      return;
+    }
 
     setPendingId(id);
-    window.setTimeout(() => {
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === id ? { ...p, scheduledAt: next.toISOString() } : p,
-        ),
-      );
-      setPendingId(null);
-      selectDay(targetDate);
-      setActivePostId(id);
-      flash("Post rescheduled");
-    }, 220);
+    const result = await reschedulePostAction(id, next.toISOString());
+    setPendingId(null);
+    if (!result.success) {
+      flash(result.error, "error");
+      return;
+    }
+    const saved = toUiPost(result.data);
+    setPosts((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
+    selectDay(targetDate);
+    setActivePostId(id);
+    flash("Post rescheduled");
   }
 
   function shiftWeek(direction: -1 | 1) {
@@ -474,16 +468,6 @@ export default function ScheduleView() {
           Create post
         </Link>
       </div>
-
-      {toast ? (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-medium text-primary"
-        >
-          {toast}
-        </motion.div>
-      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -723,10 +707,11 @@ export default function ScheduleView() {
                     {daysInMonthGrid.map((day) => {
                       const inMonth = isSameMonth(day, cursorMonth);
                       const selected = isSameDay(day, selectedDay);
-                      const today = isSameDay(day, new Date());
+                      const today = isTodayCalendarDay(day, userTimeZone);
+                      const past = isPastCalendarDay(day, userTimeZone);
                       const dayPosts = postsForDay(day);
                       const hasPosts = dayPosts.length > 0;
-                      const dayKey = toDateInput(day);
+                      const dayKey = calendarDateKey(day);
                       const isDropTarget = dropDayKey === dayKey;
 
                       return (
@@ -735,7 +720,7 @@ export default function ScheduleView() {
                           type="button"
                           onClick={() => selectDay(day)}
                           onDragOver={(e) => {
-                            if (!draggingId) return;
+                            if (!draggingId || past) return;
                             e.preventDefault();
                             setDropDayKey(dayKey);
                           }}
@@ -744,10 +729,17 @@ export default function ScheduleView() {
                               current === dayKey ? null : current,
                             );
                           }}
-                          onDrop={(e) => handleDrop(e, day)}
+                          onDrop={(e) => {
+                            if (past) {
+                              e.preventDefault();
+                              return;
+                            }
+                            void handleDrop(e, day);
+                          }}
                           className={cn(
                             "relative mx-auto flex aspect-square w-full max-w-[48px] flex-col items-center justify-center rounded-full text-sm font-semibold transition-colors sm:max-w-none",
                             !inMonth && "text-muted-foreground/40",
+                            past && inMonth && !selected && "opacity-55",
                             inMonth &&
                               !selected &&
                               !isDropTarget &&
@@ -800,7 +792,9 @@ export default function ScheduleView() {
                         {formatMonthDayYear(selectedDay)}
                       </p>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Drag a scheduled post onto a calendar day to move it.
+                        {selectedDayIsPast
+                          ? "Past days are view-only — schedule from today onward."
+                          : "Drag a scheduled post onto a calendar day to move it."}
                       </p>
                     </div>
 
@@ -808,17 +802,21 @@ export default function ScheduleView() {
                       {selectedPosts.length === 0 ? (
                         <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-4 py-10 text-center">
                           <p className="text-sm text-muted-foreground">
-                            Nothing queued this day.
+                            {selectedDayIsPast
+                              ? "Nothing was queued this day."
+                              : "Nothing queued this day."}
                           </p>
-                          <Link
-                            href="/dashboard/create"
-                            className={cn(
-                              buttonVariants(),
-                              "mt-4 rounded-md shadow-none",
-                            )}
-                          >
-                            Schedule a post
-                          </Link>
+                          {!selectedDayIsPast ? (
+                            <Link
+                              href={`/dashboard/create?date=${calendarDateKey(selectedDay)}`}
+                              className={cn(
+                                buttonVariants(),
+                                "mt-4 rounded-md shadow-none",
+                              )}
+                            >
+                              Schedule a post
+                            </Link>
+                          ) : null}
                         </div>
                       ) : (
                         selectedPosts.map((post) => {
@@ -892,10 +890,14 @@ export default function ScheduleView() {
                                   layout
                                   initial={{ opacity: 0, scale: 0.96 }}
                                   animate={{ opacity: 1, scale: 1 }}
-                                  onClick={() => openEdit(post)}
+                                  onClick={() =>
+                                    post.status === "posted"
+                                      ? openDetails(post)
+                                      : openEdit(post)
+                                  }
                                   className="shrink-0 self-center rounded-md bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition hover:bg-foreground/90"
                                 >
-                                  Edit
+                                  {post.status === "posted" ? "Details" : "Edit"}
                                 </motion.button>
                               ) : null}
                             </div>
@@ -904,9 +906,9 @@ export default function ScheduleView() {
                       )}
                     </div>
 
-                    {selectedPosts.length > 0 ? (
+                    {selectedPosts.length > 0 && !selectedDayIsPast ? (
                       <Link
-                        href="/dashboard/create"
+                        href={`/dashboard/create?date=${calendarDateKey(selectedDay)}`}
                         className="mt-5 inline-flex items-center justify-center gap-2 text-sm font-semibold text-primary hover:text-[#1e4f9a]"
                       >
                         <IoCreateOutline className="size-4" />
@@ -994,6 +996,7 @@ export default function ScheduleView() {
                     onEdit={openEdit}
                     onSelectDay={selectDay}
                     selected={isSameDay(day, selectedDay)}
+                    timeZone={userTimeZone}
                   />
                 ))}
               </div>
@@ -1013,6 +1016,7 @@ export default function ScheduleView() {
                   onEdit={openEdit}
                   onSelectDay={selectDay}
                   selected={isSameDay(day, selectedDay)}
+                  timeZone={userTimeZone}
                 />
               ))}
             </div>
@@ -1028,6 +1032,12 @@ export default function ScheduleView() {
         onDelete={handleDelete}
         saving={pendingId === editing?.id}
       />
+
+      <PostDetailsDialog
+        post={viewing}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </div>
   );
 }
@@ -1037,12 +1047,13 @@ function DayColumn({
   posts,
   pendingId,
   variant,
-  onDrop,
+  onDrop: onDayDrop,
   onDragStart,
   onDragEnd,
   onEdit,
   onSelectDay,
   selected,
+  timeZone,
 }: {
   day: Date;
   posts: ScheduledPost[];
@@ -1054,8 +1065,10 @@ function DayColumn({
   onEdit: (post: ScheduledPost) => void;
   onSelectDay: (day: Date) => void;
   selected: boolean;
+  timeZone: string;
 }) {
-  const isToday = isSameDay(day, new Date());
+  const isToday = isTodayCalendarDay(day, timeZone);
+  const isPast = isPastCalendarDay(day, timeZone);
   const isMobile = variant === "mobile";
 
   return (
@@ -1065,10 +1078,21 @@ function DayColumn({
         isMobile ? "w-[88vw] max-w-md shrink-0 snap-center p-4" : "min-h-[160px] p-2",
         selected || isToday
           ? "border-primary/30 bg-primary/[0.05]"
-          : "border-transparent bg-muted/50",
+          : isPast
+            ? "border-transparent bg-muted/30 opacity-70"
+            : "border-transparent bg-muted/50",
       )}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => onDrop(e, day)}
+      onDragOver={(e) => {
+        if (isPast) return;
+        e.preventDefault();
+      }}
+      onDrop={(e) => {
+        if (isPast) {
+          e.preventDefault();
+          return;
+        }
+        void onDayDrop(e, day);
+      }}
       onClick={() => onSelectDay(day)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -1216,28 +1240,133 @@ function PostRow({
         </div>
       </div>
       <div className="flex shrink-0 gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-9"
-          disabled={disabled}
-          onClick={() => onEdit(post)}
-          aria-label="Edit post"
-        >
-          <GoPencil className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-9"
-          disabled={disabled}
-          onClick={() => onDelete(post.id)}
-          aria-label="Delete post"
-        >
-          <GoTrash className="size-4 text-red-500" />
-        </Button>
+        {post.status === "posted" ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9"
+            disabled={disabled}
+            onClick={() => onEdit(post)}
+            aria-label="View post details"
+          >
+            <HiOutlineEye className="size-4" />
+          </Button>
+        ) : (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9"
+              disabled={disabled}
+              onClick={() => onEdit(post)}
+              aria-label="Edit post"
+            >
+              <GoPencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9"
+              disabled={disabled}
+              onClick={() => onDelete(post.id)}
+              aria-label="Delete post"
+            >
+              <GoTrash className="size-4 text-red-500" />
+            </Button>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+function PostDetailsDialog({
+  post,
+  open,
+  onOpenChange,
+}: {
+  post: ScheduledPost | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!post) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Post details</DialogTitle>
+            <DialogDescription>No post selected.</DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const meta = statusBadge[post.status];
+  const when = new Date(post.scheduledAt);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-[family-name:var(--pp-display)] text-2xl font-medium">
+            Post details
+          </DialogTitle>
+          <DialogDescription>
+            This post was already published to X and can’t be edited.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={meta.variant === "destructive" ? "outline" : meta.variant}
+              className={cn(
+                meta.variant === "destructive" && "border-red-500 text-red-600",
+              )}
+            >
+              {meta.label}
+            </Badge>
+            {post.hasImage ? (
+              <Badge variant="secondary" className="rounded-md">
+                + image
+              </Badge>
+            ) : null}
+          </div>
+
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
+              {post.content}
+            </p>
+          </div>
+
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">Published</dt>
+              <dd className="mt-0.5 font-medium">{formatListWhen(when)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Channel</dt>
+              <dd className="mt-0.5 inline-flex items-center gap-1.5 font-medium">
+                <SiX className="size-3.5" />
+                X
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            className="shadow-none"
+            onClick={() => onOpenChange(false)}
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PiCheckCircle, PiClock, PiWarningCircle } from "react-icons/pi";
 import { TiFolderOpen } from "react-icons/ti";
 import AdminStatCards from "@/components/admin/AdminStatCards";
+import AdminTablePagination, {
+  paginateRows,
+} from "@/components/admin/AdminTablePagination";
+import SegmentedFilter from "@/components/admin/SegmentedFilter";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
 import {
   Card,
@@ -14,30 +18,58 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { isIsoInRange, useAdminDateRange } from "@/lib/admin/date-range";
-import { adminPosts, formatAdminDateTime } from "@/lib/admin/mock-data";
+import { formatAdminDateTime } from "@/lib/format";
+import type { AdminPost } from "@/lib/types/admin";
+import type { PostStatus } from "@/lib/types/posts";
 
-export default function AdminPostsView() {
+type FilterKey = "all" | PostStatus;
+
+export default function AdminPostsView({
+  initialPosts,
+}: {
+  initialPosts: AdminPost[];
+}) {
   const range = useAdminDateRange();
-  const posts = useMemo(
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const rangedPosts = useMemo(
     () =>
-      [...adminPosts]
+      [...initialPosts]
         .filter((p) => isIsoInRange(p.scheduledAt, range.from, range.to))
         .sort(
           (a, b) =>
             new Date(b.scheduledAt).getTime() -
             new Date(a.scheduledAt).getTime(),
         ),
-    [range.from, range.to],
+    [initialPosts, range.from, range.to],
+  );
+
+  const posts = useMemo(() => {
+    if (filter === "all") return rangedPosts;
+    return rangedPosts.filter((p) => p.status === filter);
+  }, [rangedPosts, filter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [range.from, range.to, filter, pageSize]);
+
+  const pageCount = Math.max(1, Math.ceil(posts.length / pageSize) || 1);
+  const safePage = Math.min(page, pageCount);
+  const pagedPosts = useMemo(
+    () => paginateRows(posts, safePage, pageSize),
+    [posts, safePage, pageSize],
   );
 
   const stats = useMemo(() => {
-    const pending = posts.filter((p) => p.status === "pending").length;
-    const posted = posts.filter((p) => p.status === "posted").length;
-    const failed = posts.filter((p) => p.status === "failed").length;
+    const pending = rangedPosts.filter((p) => p.status === "pending").length;
+    const posted = rangedPosts.filter((p) => p.status === "posted").length;
+    const failed = rangedPosts.filter((p) => p.status === "failed").length;
     return [
       {
         label: "Total posts",
-        value: posts.length,
+        value: rangedPosts.length,
         hint: range.active ? "In selected range" : "Across all users",
         icon: TiFolderOpen,
       },
@@ -60,7 +92,26 @@ export default function AdminPostsView() {
         icon: PiWarningCircle,
       },
     ];
-  }, [posts, range.active]);
+  }, [rangedPosts, range.active]);
+
+  const filters: { value: FilterKey; label: string; count: number }[] = [
+    { value: "all", label: "All", count: rangedPosts.length },
+    {
+      value: "pending",
+      label: "Pending",
+      count: rangedPosts.filter((p) => p.status === "pending").length,
+    },
+    {
+      value: "posted",
+      label: "Published",
+      count: rangedPosts.filter((p) => p.status === "posted").length,
+    },
+    {
+      value: "failed",
+      label: "Failed",
+      count: rangedPosts.filter((p) => p.status === "failed").length,
+    },
+  ];
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 md:gap-8">
@@ -80,11 +131,19 @@ export default function AdminPostsView() {
       <AdminStatCards stats={stats} />
 
       <Card className="max-w-full overflow-hidden shadow-none">
-        <CardHeader>
-          <CardTitle>{posts.length} posts</CardTitle>
-          <CardDescription>
-            Showing the most recent by schedule time
-          </CardDescription>
+        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>{posts.length} posts</CardTitle>
+            <CardDescription>
+              Showing the most recent by schedule time
+            </CardDescription>
+          </div>
+          <SegmentedFilter
+            layoutId="admin-posts-status-filter"
+            value={filter}
+            onChange={setFilter}
+            items={filters}
+          />
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full min-w-[800px] text-left text-sm">
@@ -97,7 +156,7 @@ export default function AdminPostsView() {
               </tr>
             </thead>
             <tbody>
-              {posts.map((post) => (
+              {pagedPosts.map((post) => (
                 <tr
                   key={post.id}
                   className="border-b border-border/60 align-top last:border-0"
@@ -119,6 +178,11 @@ export default function AdminPostsView() {
                     <p className="line-clamp-3 whitespace-pre-wrap leading-relaxed">
                       {post.content}
                     </p>
+                    {post.hasImage ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Includes image
+                      </p>
+                    ) : null}
                   </td>
                   <td className="py-3 pr-4">
                     <PostStatusBadge status={post.status} />
@@ -128,8 +192,31 @@ export default function AdminPostsView() {
                   </td>
                 </tr>
               ))}
+              {posts.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-10 text-center text-muted-foreground"
+                  >
+                    {range.active
+                      ? "No posts in this date range."
+                      : filter === "all"
+                        ? "No posts yet."
+                        : `No ${filter} posts.`}
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
+          {posts.length > 0 ? (
+            <AdminTablePagination
+              total={posts.length}
+              page={safePage}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          ) : null}
         </CardContent>
       </Card>
     </div>

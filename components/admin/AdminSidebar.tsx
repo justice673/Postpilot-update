@@ -6,9 +6,9 @@ import { useState } from "react";
 import {
   FiArrowLeft,
   FiLogOut,
-  FiShield,
 } from "react-icons/fi";
 import {
+  HiOutlineBell,
   HiOutlineChevronUpDown,
   HiOutlineMagnifyingGlass,
 } from "react-icons/hi2";
@@ -17,6 +17,7 @@ import { PiUsersThree } from "react-icons/pi";
 import { SiGoogleanalytics } from "react-icons/si";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { TiFolderOpen } from "react-icons/ti";
+import PostpilotMark from "@/components/postpilot/PostpilotMark";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,11 +52,14 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { createClient } from "@/lib/supabase/client";
+import type { UserProfile } from "@/lib/types/profile";
+import { toast } from "sonner";
 
-const user = {
-  name: "Justice",
-  email: "justice@postpilot.app",
-  initials: "J",
+const fallbackUser = {
+  name: "Admin",
+  email: "",
+  initials: "A",
   role: "Super admin",
 };
 
@@ -72,6 +76,11 @@ const navSections = [
       { href: "/admin/users", label: "Users", icon: PiUsersThree },
       { href: "/admin/posts", label: "Posts", icon: TiFolderOpen },
       {
+        href: "/admin/notifications",
+        label: "Notifications",
+        icon: HiOutlineBell,
+      },
+      {
         href: "/admin/settings",
         label: "Settings",
         icon: MdOutlineSettings,
@@ -85,17 +94,33 @@ function isActive(pathname: string, href: string, exact?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function AdminSidebar() {
+export default function AdminSidebar({
+  profile,
+}: {
+  profile?: UserProfile | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const user = profile
+    ? {
+        name: profile.name || fallbackUser.name,
+        email: profile.email || fallbackUser.email,
+        initials: profile.initials || fallbackUser.initials,
+        role: "Super admin",
+      }
+    : fallbackUser;
 
-  function confirmLogout() {
+  async function confirmLogout() {
     setLogoutOpen(false);
     setOpenMobile(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    toast.success("Signed out");
     router.push("/login");
+    router.refresh();
   }
 
   const filteredSections = navSections.map((section) => ({
@@ -112,9 +137,7 @@ export default function AdminSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip="Admin panel">
               <Link href="/admin" onClick={() => setOpenMobile(false)}>
-                <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <FiShield className="size-4" />
-                </span>
+                <PostpilotMark size={32} />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-[family-name:var(--font-newsreader)] text-base font-medium tracking-tight">
                     Admin<span className="text-primary">Panel</span>

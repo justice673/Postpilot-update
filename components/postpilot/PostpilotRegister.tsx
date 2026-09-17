@@ -11,6 +11,9 @@ import {
   HiOutlineLockClosed,
 } from "react-icons/hi2";
 import PostpilotAuthShell from "@/components/postpilot/PostpilotAuthShell";
+import { assertSignupsOpenAction } from "@/app/register/actions";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -22,11 +25,13 @@ export default function PostpilotRegister() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
@@ -38,10 +43,45 @@ export default function PostpilotRegister() {
     }
 
     setLoading(true);
-    window.setTimeout(() => {
+
+    const signupGate = await assertSignupsOpenAction();
+    if (!signupGate.success) {
+      setError(signupGate.error);
+      toast.error("Signups closed", { description: signupGate.error });
       setLoading(false);
+      return;
+    }
+
+    const supabase = createClient();
+    const { data, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/onboarding/connect`,
+      },
+    });
+
+    if (authError) {
+      setError(authError.message);
+      toast.error("Couldn’t create account", { description: authError.message });
+      setLoading(false);
+      return;
+    }
+
+    if (data.session) {
+      toast.success("Account created");
       router.push("/onboarding/connect");
-    }, 700);
+      router.refresh();
+      return;
+    }
+
+    setSuccess(
+      "Account created! Check your email to confirm your address, then sign in.",
+    );
+    toast.success("Check your email", {
+      description: "Confirm your address, then sign in.",
+    });
+    setLoading(false);
   }
 
   return (
@@ -139,6 +179,7 @@ export default function PostpilotRegister() {
         </label>
 
         {error ? <p className="pp-login__error">{error}</p> : null}
+        {success ? <p className="pp-login__success">{success}</p> : null}
 
         <button
           type="submit"

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FaLinkedinIn, FaTiktok } from "react-icons/fa6";
 import { FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi";
@@ -10,6 +10,7 @@ import { RiInstagramFill } from "react-icons/ri";
 import { SiX, SiYoutube } from "react-icons/si";
 import PostpilotMark from "@/components/postpilot/PostpilotMark";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -66,26 +67,49 @@ const networks: Network[] = [
   },
 ];
 
-export default function ConnectSocialsOnboarding() {
+function ConnectSocialsOnboardingInner({
+  initiallyConnected = false,
+  xUsername = null,
+}: {
+  initiallyConnected?: boolean;
+  xUsername?: string | null;
+}) {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2>(1);
+  const searchParams = useSearchParams();
+  const xError = searchParams.get("x_error");
+  const justConnected = searchParams.get("connected") === "true";
+
+  const [step, setStep] = useState<1 | 2>(
+    initiallyConnected || justConnected ? 2 : 1,
+  );
   const [selected, setSelected] = useState<string | null>("x");
   const [connecting, setConnecting] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const connected = initiallyConnected || justConnected;
 
-  async function connectSelected() {
+  const errorMessage = useMemo(() => {
+    if (!xError) return null;
+    if (xError === "oauth_callback_invalid")
+      return "X connection was cancelled or incomplete.";
+    if (xError === "oauth_token_mismatch")
+      return "X connection expired. Please try again.";
+    return "Could not connect X. Please try again.";
+  }, [xError]);
+
+  useEffect(() => {
+    if (!errorMessage) return;
+    toast.error("Couldn’t connect X", { description: errorMessage });
+  }, [errorMessage]);
+
+  function connectSelected() {
     if (selected !== "x") return;
     setConnecting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setConnected(true);
-    setConnecting(false);
-    setStep(2);
+    window.location.href = "/api/auth/x";
   }
 
   function continueFlow() {
     if (step === 1) {
       if (selected === "x" && !connected) {
-        void connectSelected();
+        connectSelected();
         return;
       }
       setStep(2);
@@ -113,7 +137,16 @@ export default function ConnectSocialsOnboarding() {
       </header>
 
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 pb-10 md:px-8">
-        <div className="mb-8 flex items-center justify-center gap-3" aria-label="Onboarding progress">
+        {errorMessage ? (
+          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700">
+            {errorMessage}
+          </p>
+        ) : null}
+
+        <div
+          className="mb-8 flex items-center justify-center gap-3"
+          aria-label="Onboarding progress"
+        >
           {[1, 2].map((n) => (
             <div key={n} className="flex items-center gap-3">
               <span
@@ -169,7 +202,11 @@ export default function ConnectSocialsOnboarding() {
                     disabled={disabled}
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, ease, delay: 0.05 + i * 0.05 }}
+                    transition={{
+                      duration: 0.45,
+                      ease,
+                      delay: 0.05 + i * 0.05,
+                    }}
                     onClick={() => setSelected(network.id)}
                     className={cn(
                       "relative flex flex-col items-center rounded-2xl border bg-white px-5 py-7 text-center transition-all",
@@ -200,7 +237,9 @@ export default function ConnectSocialsOnboarding() {
                       {network.name}
                     </span>
                     <span className="mt-1 text-xs font-medium text-[#525252]">
-                      {network.blurb}
+                      {network.id === "x" && connected && xUsername
+                        ? `@${xUsername}`
+                        : network.blurb}
                     </span>
                     {network.status === "soon" ? (
                       <span className="mt-3 rounded-md bg-[#eef4fc] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1e4f9a]">
@@ -295,5 +334,16 @@ export default function ConnectSocialsOnboarding() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConnectSocialsOnboarding(props: {
+  initiallyConnected?: boolean;
+  xUsername?: string | null;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ConnectSocialsOnboardingInner {...props} />
+    </Suspense>
   );
 }

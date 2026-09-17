@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -24,11 +23,9 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import {
-  getAdminActivitySeries,
-  getAdminOverview,
-} from "@/lib/admin/mock-data";
 import { useAdminDateRange } from "@/lib/admin/date-range";
+import type { AdminOverview as AdminOverviewData } from "@/lib/types/admin";
+import type { DashboardChartPoint } from "@/lib/types/analytics";
 import { PiCheckCircle, PiClock, PiUsersThree, PiWarningCircle } from "react-icons/pi";
 import { SiX } from "react-icons/si";
 import { TiFolderOpen } from "react-icons/ti";
@@ -38,16 +35,14 @@ const activityConfig = {
   published: { label: "Published", color: "#2b6dcf" },
 } satisfies ChartConfig;
 
-export default function AdminOverview() {
+export default function AdminOverview({
+  overview,
+  activity,
+}: {
+  overview: AdminOverviewData;
+  activity: DashboardChartPoint[];
+}) {
   const range = useAdminDateRange();
-  const overview = useMemo(
-    () => getAdminOverview({ from: range.from, to: range.to }),
-    [range.from, range.to],
-  );
-  const activity = useMemo(
-    () => getAdminActivitySeries({ from: range.from, to: range.to }),
-    [range.from, range.to],
-  );
 
   const kpis = [
     {
@@ -139,42 +134,86 @@ export default function AdminOverview() {
           </Link>
         </CardHeader>
         <CardContent>
-          <ChartContainer
-            config={activityConfig}
-            className="aspect-auto h-[280px] min-h-[280px] w-full"
-          >
-            <AreaChart data={activity} margin={{ left: 8, right: 8, top: 8 }}>
-              <defs>
-                <linearGradient id="fillScheduled" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
-                </linearGradient>
-                <linearGradient id="fillPublished" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} width={32} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Area
-                type="monotone"
-                dataKey="scheduled"
-                stroke="var(--color-scheduled)"
-                fill="url(#fillScheduled)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="published"
-                stroke="var(--color-published)"
-                fill="url(#fillPublished)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ChartContainer>
+          {activity.length === 0 ? (
+            <p className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              No activity in this period yet.
+            </p>
+          ) : (
+            <ChartContainer
+              config={activityConfig}
+              className="aspect-auto h-[280px] min-h-[280px] w-full"
+            >
+              <AreaChart data={activity} margin={{ left: 8, right: 8, top: 8 }}>
+                <defs>
+                  <linearGradient id="fillScheduled" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="fillPublished" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={28}
+                  tickFormatter={(value) =>
+                    new Date(value).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
+                  }
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={32}
+                  allowDecimals={false}
+                  domain={[
+                    0,
+                    Math.max(
+                      1,
+                      ...activity.map((p) => p.scheduled + p.published),
+                    ),
+                  ]}
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(value) =>
+                        new Date(value).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      }
+                    />
+                  }
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Area
+                  type="linear"
+                  dataKey="scheduled"
+                  stroke="var(--color-scheduled)"
+                  fill="url(#fillScheduled)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="linear"
+                  dataKey="published"
+                  stroke="var(--color-published)"
+                  fill="url(#fillPublished)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ChartContainer>
+          )}
         </CardContent>
       </Card>
     </div>

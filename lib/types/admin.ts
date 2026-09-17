@@ -1,0 +1,65 @@
+import type { PostStatus } from "@/lib/types/posts";
+import type { UserRole } from "@/lib/types/profile";
+import type { DashboardChartPoint } from "@/lib/types/analytics";
+
+export interface AdminOverview {
+  totalUsers: number;
+  totalPosts: number;
+  pendingPosts: number;
+  postedPosts: number;
+  failedPosts: number;
+  xConnectedUsers: number;
+}
+
+export interface AdminUserSummary {
+  userId: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  xConnected: boolean;
+  xUsername: string;
+  postCount: number;
+  pendingCount: number;
+  postedCount: number;
+  failedCount: number;
+  createdAt: string;
+  bio?: string;
+  timezone?: string;
+  avatarUrl?: string;
+  aiWritingEnabled?: boolean;
+  suspended?: boolean;
+}
+
+export interface AdminPost {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  content: string;
+  scheduledAt: string;
+  status: PostStatus;
+  hasImage: boolean;
+  postedAt?: string;
+  createdAt?: string;
+}
+
+export interface AdminUserDetail extends AdminUserSummary {
+  bio: string;
+  timezone: string;
+  aiWritingEnabled: boolean;
+  avatarUrl?: string;
+  suspended?: boolean;
+  posts: AdminPost[];
+}
+
+export interface AdminAnalyticsData {
+  weeklyPosts: { day: string; posted: number; failed: number }[];
+  monthlyTotal: number;
+  weeklyTotal: number;
+  successRate: number;
+  postingTimes: { hour: string; count: number }[];
+  bestTime: string;
+  postStatusBreakdown: { name: string; value: number; status: PostStatus | "none" }[];
+  userSignups: DashboardChartPoint[];
+  xConnectionBreakdown: { name: string; value: number }[];
+}

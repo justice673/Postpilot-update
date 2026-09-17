@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import ConnectSocialsOnboarding from "@/components/onboarding/ConnectSocialsOnboarding";
+import { getSettings } from "@/lib/services/settings";
 import "../../postpilot.css";
 
 export const metadata: Metadata = {
@@ -7,6 +9,17 @@ export const metadata: Metadata = {
   description: "Connect X to start scheduling with Postpilot.",
 };
 
-export default function ConnectOnboardingPage() {
-  return <ConnectSocialsOnboarding />;
+export default async function ConnectOnboardingPage() {
+  const settings = await getSettings().catch(() => null);
+
+  if (settings?.xConnected) {
+    redirect("/dashboard");
+  }
+
+  return (
+    <ConnectSocialsOnboarding
+      initiallyConnected={Boolean(settings?.xConnected)}
+      xUsername={settings?.xUsername ?? null}
+    />
+  );
 }

@@ -18,10 +18,11 @@ const pageLabels: Record<string, string> = {
   "/admin/analytics": "Analytics",
   "/admin/users": "Users",
   "/admin/posts": "Posts",
+  "/admin/notifications": "Notifications",
   "/admin/settings": "Settings",
 };
 
-function AdminHeader() {
+function AdminHeader({ notificationCount = 0 }: { notificationCount?: number }) {
   const pathname = usePathname();
   const pageLabel =
     pageLabels[pathname] ??
@@ -52,12 +53,20 @@ function AdminHeader() {
           <AdminDateRangeFilter className="min-w-0 shrink" />
         </Suspense>
         <Link
-          href="/dashboard/notifications"
-          aria-label="Notifications"
+          href="/admin/notifications"
+          aria-label={
+            notificationCount > 0
+              ? `Notifications, ${notificationCount} recent`
+              : "Notifications"
+          }
           className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
         >
           <GoBell className="size-[18px]" />
-          <span className="absolute right-2 top-2 size-1.5 rounded-full bg-primary" />
+          {notificationCount > 0 ? (
+            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+              {notificationCount > 9 ? "9+" : notificationCount}
+            </span>
+          ) : null}
         </Link>
       </div>
     </header>
@@ -66,14 +75,18 @@ function AdminHeader() {
 
 export default function AdminShell({
   children,
+  profile,
+  notificationCount = 0,
 }: {
   children: React.ReactNode;
+  profile?: import("@/lib/types/profile").UserProfile | null;
+  notificationCount?: number;
 }) {
   return (
     <SidebarProvider>
-      <AdminSidebar />
+      <AdminSidebar profile={profile} />
       <SidebarInset className="min-w-0 overflow-x-hidden bg-[linear-gradient(180deg,#cfe0fb33_0%,#ffffff_28%)]">
-        <AdminHeader />
+        <AdminHeader notificationCount={notificationCount} />
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted/40" />}>
             {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   FiArrowLeft,
@@ -16,8 +16,12 @@ import {
 } from "react-icons/fi";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import { SiX } from "react-icons/si";
+import {
+  deleteUserAction,
+  setUserSuspendedAction,
+} from "@/app/admin/users/actions";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -35,14 +39,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  formatAdminDate,
-  formatAdminDateTime,
-  getAdminUser,
-  getPostsForUser,
-} from "@/lib/admin/mock-data";
-import type { PostStatus } from "@/lib/admin/types";
+import { formatAdminDate, formatAdminDateTime } from "@/lib/format";
+import type { AdminUserDetail } from "@/lib/types/admin";
+import type { PostStatus } from "@/lib/types/posts";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type FilterKey = "all" | PostStatus;
 
@@ -53,35 +54,32 @@ function initials(name: string) {
   return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
 }
 
-export default function AdminUserDetailView({ userId }: { userId: string }) {
-  const user = getAdminUser(userId);
-  const posts = useMemo(
-    () => (user ? getPostsForUser(user.id) : []),
-    [user],
-  );
+export default function AdminUserDetailView({
+  user,
+}: {
+  user: AdminUserDetail;
+}) {
+  const router = useRouter();
+  const posts = user.posts;
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [suspended, setSuspended] = useState(false);
+  const [suspended, setSuspended] = useState(Boolean(user.suspended));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [pending, setPending] = useState(false);
 
   const counts = useMemo(() => {
-    const pending = posts.filter((p) => p.status === "pending").length;
-    const posted = posts.filter((p) => p.status === "posted").length;
-    const failed = posts.filter((p) => p.status === "failed").length;
     return {
-      total: posts.length,
-      pending,
-      posted,
-      failed,
+      total: user.postCount,
+      pending: user.pendingCount,
+      posted: user.postedCount,
+      failed: user.failedCount,
     };
-  }, [posts]);
+  }, [user]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return posts;
     return posts.filter((p) => p.status === filter);
   }, [filter, posts]);
-
-  if (!user) notFound();
 
   const filters: { key: FilterKey; label: string; count: number }[] = [
     { key: "all", label: "All", count: counts.total },
@@ -89,6 +87,44 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
     { key: "posted", label: "Published", count: counts.posted },
     { key: "failed", label: "Failed", count: counts.failed },
   ];
+
+  function refreshAfterToast() {
+    window.setTimeout(() => router.refresh(), 250);
+  }
+
+  async function toggleSuspend() {
+    const next = !suspended;
+    setPending(true);
+    try {
+      const result = await setUserSuspendedAction(user.userId, next);
+      if (!result.success) {
+        toast.error("Couldn’t update user", { description: result.error });
+        return;
+      }
+      setSuspended(next);
+      toast.success(next ? "User suspended" : "User reactivated");
+      refreshAfterToast();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function confirmDelete() {
+    setPending(true);
+    try {
+      const result = await deleteUserAction(user.userId);
+      if (!result.success) {
+        toast.error("Couldn’t delete user", { description: result.error });
+        return;
+      }
+      setDeleteOpen(false);
+      setRemoved(true);
+      toast.success("User deleted");
+      refreshAfterToast();
+    } finally {
+      setPending(false);
+    }
+  }
 
   if (removed) {
     return (
@@ -126,6 +162,13 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
             <Avatar className="size-16 rounded-2xl">
+              {user.avatarUrl ? (
+                <AvatarImage
+                  src={user.avatarUrl}
+                  alt={user.displayName}
+                  className="rounded-2xl object-cover"
+                />
+              ) : null}
               <AvatarFallback className="rounded-2xl bg-primary/15 text-lg font-semibold text-primary">
                 {initials(user.displayName)}
               </AvatarFallback>
@@ -156,7 +199,8 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
               type="button"
               variant="outline"
               className="shadow-none"
-              onClick={() => setSuspended((v) => !v)}
+              disabled={pending}
+              onClick={() => void toggleSuspend()}
             >
               {suspended ? (
                 <>
@@ -174,7 +218,7 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
               type="button"
               variant="outline"
               className="border-red-200 text-red-600 shadow-none hover:bg-red-50 hover:text-red-700"
-              disabled={user.role === "super_admin"}
+              disabled={user.role === "super_admin" || pending}
               onClick={() => setDeleteOpen(true)}
             >
               <FiTrash2 className="size-4" />
@@ -334,7 +378,7 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
             </div>
             <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
               <span className="text-muted-foreground">User ID</span>
-              <span className="font-mono text-xs font-medium">{user.id}</span>
+              <span className="font-mono text-xs font-medium">{user.userId}</span>
             </div>
           </CardContent>
         </Card>
@@ -402,13 +446,18 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !pending) setDeleteOpen(false);
+        }}
+      >
         <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Delete user?</DialogTitle>
             <DialogDescription>
-              This will permanently remove {user.displayName} and their posts
-              from Postpilot.
+              This permanently removes {user.displayName}, their posts, and
+              settings from Postpilot.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:justify-end">
@@ -416,6 +465,7 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
               type="button"
               variant="outline"
               className="shadow-none"
+              disabled={pending}
               onClick={() => setDeleteOpen(false)}
             >
               Cancel
@@ -423,13 +473,11 @@ export default function AdminUserDetailView({ userId }: { userId: string }) {
             <Button
               type="button"
               className="bg-red-600 text-white shadow-none hover:bg-red-700"
-              onClick={() => {
-                setDeleteOpen(false);
-                setRemoved(true);
-              }}
+              disabled={pending}
+              onClick={() => void confirmDelete()}
             >
               <FiTrash2 className="size-4" />
-              Delete user
+              {pending ? "Deleting…" : "Delete user"}
             </Button>
           </DialogFooter>
         </DialogContent>

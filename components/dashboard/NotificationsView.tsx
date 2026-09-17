@@ -3,10 +3,12 @@
 import { useState } from "react";
 import {
   HiOutlineBell,
+  HiOutlineCalendarDays,
   HiOutlineEnvelope,
   HiOutlineExclamationTriangle,
 } from "react-icons/hi2";
 import { SiX } from "react-icons/si";
+import { saveNotificationSettingsAction } from "@/app/dashboard/notifications/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,17 +17,70 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import type {
+  DigestFrequency,
+  NotificationSettings,
+} from "@/lib/types/notifications";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-export default function NotificationsView() {
-  const [notifyPublish, setNotifyPublish] = useState(true);
-  const [notifyFail, setNotifyFail] = useState(true);
-  const [notifyDigest, setNotifyDigest] = useState(false);
-  const [notifyProduct, setNotifyProduct] = useState(true);
+const DIGEST_OPTIONS: { value: DigestFrequency; label: string; hint: string }[] =
+  [
+    {
+      value: "instant",
+      label: "Instant",
+      hint: "Send as they happen",
+    },
+    {
+      value: "daily",
+      label: "Daily",
+      hint: "One digest at 8:00 AM",
+    },
+    {
+      value: "weekly",
+      label: "Weekly",
+      hint: "Sundays at 9:00 AM",
+    },
+  ];
+
+export default function NotificationsView({
+  initialSettings,
+}: {
+  initialSettings: NotificationSettings;
+}) {
+  const [settings, setSettings] = useState(initialSettings);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function save() {
+  function toggle<K extends keyof NotificationSettings>(
+    key: K,
+    value: NotificationSettings[K],
+  ) {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    const result = await saveNotificationSettingsAction({
+      emailPostSuccess: settings.emailPostSuccess,
+      emailPostFailed: settings.emailPostFailed,
+      emailWeeklySummary: settings.emailWeeklySummary,
+      emailDailyReminder: settings.emailDailyReminder,
+      emailProductUpdates: settings.emailProductUpdates,
+      digestFrequency: settings.digestFrequency,
+    });
+    setSaving(false);
+    if (!result.success) {
+      setError(result.error);
+      toast.error("Couldn’t save preferences", { description: result.error });
+      return;
+    }
+    setSettings(result.data);
     setSaved(true);
+    toast.success("Preferences saved");
     window.setTimeout(() => setSaved(false), 2000);
   }
 
@@ -39,7 +94,8 @@ export default function NotificationsView() {
           Alerts & email
         </h1>
         <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-          Choose what Postpilot emails you about your X queue.
+          Choose what Postpilot emails you about your X queue. Emails send when
+          SMTP is configured on the server.
         </p>
       </div>
 
@@ -57,22 +113,29 @@ export default function NotificationsView() {
             icon={HiOutlineBell}
             title="Publish confirmations"
             description="Email when a scheduled post goes live."
-            checked={notifyPublish}
-            onChange={setNotifyPublish}
+            checked={settings.emailPostSuccess}
+            onChange={(v) => toggle("emailPostSuccess", v)}
           />
           <ToggleRow
             icon={HiOutlineExclamationTriangle}
             title="Failed publishes"
             description="Alert me if a post fails so I can reconnect and retry."
-            checked={notifyFail}
-            onChange={setNotifyFail}
+            checked={settings.emailPostFailed}
+            onChange={(v) => toggle("emailPostFailed", v)}
           />
           <ToggleRow
             icon={SiX}
-            title="Weekly digest"
+            title="Weekly summary"
             description="A Monday summary of what published and what’s still queued."
-            checked={notifyDigest}
-            onChange={setNotifyDigest}
+            checked={settings.emailWeeklySummary}
+            onChange={(v) => toggle("emailWeeklySummary", v)}
+          />
+          <ToggleRow
+            icon={HiOutlineCalendarDays}
+            title="Daily schedule reminder"
+            description="Morning email listing posts scheduled for today."
+            checked={settings.emailDailyReminder}
+            onChange={(v) => toggle("emailDailyReminder", v)}
           />
         </CardContent>
       </Card>
@@ -91,18 +154,60 @@ export default function NotificationsView() {
             icon={HiOutlineEnvelope}
             title="Product emails"
             description="New networks, AI compose improvements, and tips."
-            checked={notifyProduct}
-            onChange={setNotifyProduct}
+            checked={settings.emailProductUpdates}
+            onChange={(v) => toggle("emailProductUpdates", v)}
           />
         </CardContent>
       </Card>
 
+      <Card className="border-border shadow-none">
+        <CardHeader>
+          <CardTitle className="font-[family-name:var(--pp-display)] text-xl font-medium">
+            Delivery
+          </CardTitle>
+          <CardDescription>
+            How often non-urgent notifications are grouped and sent.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="digest-frequency">Digest frequency</Label>
+            <select
+              id="digest-frequency"
+              value={settings.digestFrequency}
+              onChange={(e) =>
+                toggle("digestFrequency", e.target.value as DigestFrequency)
+              }
+              className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {DIGEST_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} — {opt.hint}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Failed post alerts are always sent immediately, regardless of
+              digest setting.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" className="rounded-md shadow-none" onClick={save}>
-          Save preferences
+        <Button
+          type="button"
+          className="rounded-md shadow-none"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          {saving ? "Saving…" : "Save preferences"}
         </Button>
         {saved ? (
           <span className="text-sm font-medium text-emerald-700">Saved</span>
+        ) : null}
+        {error ? (
+          <span className="text-sm font-medium text-destructive">{error}</span>
         ) : null}
       </div>
     </div>

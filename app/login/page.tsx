@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   description: "Sign in to Postpilot to schedule and publish posts to X.",
 };
 
-export default function LoginPage() {
-  return <PostpilotLogin />;
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const raw = params.signups;
+  const signupsClosed = (Array.isArray(raw) ? raw[0] : raw) === "closed";
+
+  return <PostpilotLogin signupsClosed={signupsClosed} />;
 }

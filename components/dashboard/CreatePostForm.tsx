@@ -28,15 +28,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
+import {
+  createPostAction,
+  expandPromptAction,
+} from "@/app/dashboard/create/actions";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  resolveUserTimeZone,
+  todayKeyInZone,
+} from "@/lib/timezone";
+import { DEFAULT_TIMEZONE } from "@/lib/types/profile";
 
 const MAX_CHARS = 280;
 const MAX_IMAGES = 4;
-
-const AI_SAMPLES = [
-  "Hot take: the best marketing is a product that ships weekly and talks about it in public.",
-  "Three things we learned shipping Postpilot this month — and the one mistake we’ll never repeat.",
-  "If your content calendar lives in five tabs, you don’t have a workflow. You have a scavenger hunt.",
-];
 
 type Mode = "write" | "prompt";
 
@@ -44,23 +49,38 @@ type LocalImage = {
   id: string;
   url: string;
   name: string;
+  file?: File;
 };
 
-function todayISO() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-export default function CreatePostForm() {
+export default function CreatePostForm({
+  xConnected = false,
+  xUsername = null,
+  initialDate,
+  timeZone,
+  platformAiEnabled = true,
+}: {
+  xConnected?: boolean;
+  xUsername?: string | null;
+  initialDate?: string | null;
+  timeZone?: string | null;
+  platformAiEnabled?: boolean;
+}) {
+  const router = useRouter();
+  const userTimeZone = resolveUserTimeZone(
+    timeZone && timeZone !== DEFAULT_TIMEZONE ? timeZone : null,
+  );
+  const minDate = todayKeyInZone(userTimeZone);
   const fileRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>("write");
   const [content, setContent] = useState("");
   const [prompt, setPrompt] = useState("");
   const [images, setImages] = useState<LocalImage[]>([]);
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState(() => {
+    if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
+      return initialDate < minDate ? minDate : initialDate;
+    }
+    return minDate;
+  });
   const [time, setTime] = useState("14:00");
   const [expanding, setExpanding] = useState(false);
   const [scheduling, setScheduling] = useState(false);
@@ -88,6 +108,7 @@ export default function CreatePostForm() {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         url: URL.createObjectURL(file),
         name: file.name,
+        file,
       }));
     setImages((prev) => [...prev, ...next]);
     if (fileRef.current) fileRef.current.value = "";
@@ -101,6 +122,33 @@ export default function CreatePostForm() {
     });
   }
 
+  async function resolveImageUrls(): Promise<string[]> {
+    const remoteUrls = images
+      .filter((img) => img.url.startsWith("http"))
+      .map((img) => img.url);
+    const filesToUpload = images
+      .filter((img) => img.file)
+      .map((img) => img.file!);
+    if (filesToUpload.length === 0) return remoteUrls;
+
+    const formData = new FormData();
+    filesToUpload.forEach((file) => formData.append("files", file));
+
+    const response = await fetch("/api/upload-post-images", {
+      method: "POST",
+      body: formData,
+    });
+    const uploadResult = (await response.json()) as
+      | { success: true; data: string[] }
+      | { success: false; error: string };
+
+    if (!uploadResult.success) {
+      throw new Error(uploadResult.error);
+    }
+
+    return [...remoteUrls, ...uploadResult.data];
+  }
+
   async function handleExpand() {
     if (!prompt.trim()) {
       setError("Add a prompt first.");
@@ -109,28 +157,111 @@ export default function CreatePostForm() {
     setExpanding(true);
     setError(null);
     setMessage(null);
-    await new Promise((r) => setTimeout(r, 700));
-    const pick = AI_SAMPLES[Math.floor(Math.random() * AI_SAMPLES.length)];
-    setContent(pick);
+
+    const result = await expandPromptAction(prompt);
+    if (!result.success) {
+      setError(result.error);
+      toast.error("Couldn’t expand prompt", { description: result.error });
+      setExpanding(false);
+      return;
+    }
+
+    setContent(result.data);
     setMode("write");
     setExpanding(false);
     setMessage("Draft expanded with AI — edit freely, then schedule.");
+    toast.success("Draft expanded", {
+      description: "Edit freely, then schedule when you’re ready.",
+    });
   }
 
   async function handleSchedule() {
-    if (!content.trim()) {
+    if (!xConnected) {
+      setError("Connect your X account before scheduling.");
+      toast.error("Connect X first", {
+        description: "Link your X account before scheduling a post.",
+      });
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+
+    let finalContent = content.trim();
+
+    if (mode === "prompt" && !finalContent) {
+      if (!prompt.trim()) {
+        setError("Write something or drop a prompt first.");
+        return;
+      }
+      setScheduling(true);
+      const expandResult = await expandPromptAction(prompt);
+      if (!expandResult.success) {
+        setError(expandResult.error);
+        toast.error("Couldn’t expand prompt", {
+          description: expandResult.error,
+        });
+        setScheduling(false);
+        return;
+      }
+      finalContent = expandResult.data;
+      setContent(finalContent);
+    }
+
+    if (!finalContent) {
       setError("Write a post (or expand a prompt) before scheduling.");
       return;
     }
-    if (overLimit) {
+    if (finalContent.length > MAX_CHARS) {
       setError("X posts must be 280 characters or fewer.");
       return;
     }
+    if (date < minDate) {
+      setError("Pick today or a future day in your timezone.");
+      toast.error("That day is already past", {
+        description: `Your timezone is ${userTimeZone}.`,
+      });
+      return;
+    }
+
     setScheduling(true);
-    setError(null);
-    await new Promise((r) => setTimeout(r, 800));
-    setScheduling(false);
-    setMessage(`Queued for ${date} at ${time} on X.`);
+
+    try {
+      const imageUrls =
+        images.length > 0 ? await resolveImageUrls() : [];
+      const scheduledAt = new Date(`${date}T${time}`).toISOString();
+
+      const result = await createPostAction({
+        content: finalContent,
+        scheduledAt,
+        hasImage: imageUrls.length > 0,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      });
+
+      if (!result.success) {
+        setError(result.error);
+        toast.error("Couldn’t schedule post", { description: result.error });
+        return;
+      }
+
+      images.forEach((img) => {
+        if (img.url.startsWith("blob:")) URL.revokeObjectURL(img.url);
+      });
+      setImages([]);
+      setMessage(`Queued for ${date} at ${time} on X.`);
+      toast.success("Post scheduled", {
+        description: `Queued for ${date} at ${time} on X.`,
+      });
+      router.push("/dashboard/schedule");
+      router.refresh();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save post.";
+      setError(message);
+      toast.error("Couldn’t schedule post", { description: message });
+    } finally {
+      setScheduling(false);
+    }
   }
 
   return (
@@ -148,41 +279,57 @@ export default function CreatePostForm() {
             four images, then schedule.
           </p>
         </div>
-        <Badge className="w-fit rounded-md bg-primary/10 text-primary hover:bg-primary/10">
-          <SiX className="mr-1.5 size-3" />
-          X connected
-        </Badge>
+        {xConnected ? (
+          <Badge className="w-fit rounded-md bg-primary/10 text-primary hover:bg-primary/10">
+            <SiX className="mr-1.5 size-3" />
+            {xUsername ? `@${xUsername}` : "X connected"}
+          </Badge>
+        ) : (
+          <Link
+            href="/onboarding/connect"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "w-fit rounded-md",
+            )}
+          >
+            <SiX className="mr-1.5 size-3" />
+            Connect X to schedule
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <Card className="border-border shadow-none">
           <CardHeader className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  { id: "write", label: "Write post", icon: IoCreateOutline },
-                  {
-                    id: "prompt",
-                    label: "Drop a prompt",
-                    icon: HiOutlineSparkles,
-                  },
-                ] as const
-              ).map((tab) => (
+              <button
+                type="button"
+                onClick={() => setMode("write")}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
+                  mode === "write"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <IoCreateOutline className="size-4" />
+                Write post
+              </button>
+              {platformAiEnabled ? (
                 <button
-                  key={tab.id}
                   type="button"
-                  onClick={() => setMode(tab.id)}
+                  onClick={() => setMode("prompt")}
                   className={cn(
                     "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
-                    mode === tab.id
+                    mode === "prompt"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <tab.icon className="size-4" />
-                  {tab.label}
+                  <HiOutlineSparkles className="size-4" />
+                  Drop a prompt
                 </button>
-              ))}
+              ) : null}
             </div>
             <div>
               <CardTitle className="font-[family-name:var(--pp-display)] text-xl font-medium">
@@ -308,6 +455,7 @@ export default function CreatePostForm() {
                   id="schedule-date"
                   value={date}
                   onChange={setDate}
+                  min={minDate}
                 />
               </div>
               <div className="space-y-2">

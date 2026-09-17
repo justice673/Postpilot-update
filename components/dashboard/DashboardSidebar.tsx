@@ -17,7 +17,7 @@ import { MdOutlineSettings } from "react-icons/md";
 import { PiCalendarLight } from "react-icons/pi";
 import { SiGoogleanalytics } from "react-icons/si";
 import { TbLayoutDashboard } from "react-icons/tb";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,11 +51,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import PostpilotMark from "@/components/postpilot/PostpilotMark";
+import { createClient } from "@/lib/supabase/client";
+import type { UserProfile } from "@/lib/types/profile";
+import { toast } from "sonner";
 
-const user = {
-  name: "Justice",
-  email: "justice@postpilot.app",
-  initials: "J",
+const fallbackUser = {
+  name: "User",
+  email: "",
+  initials: "U",
 };
 
 const navSections = [
@@ -100,17 +103,39 @@ function isActive(pathname: string, href: string, exact?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({
+  profile,
+  isAdmin = false,
+}: {
+  profile?: UserProfile | null;
+  isAdmin?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const user = profile
+    ? {
+        name: profile.name || fallbackUser.name,
+        email: profile.email || fallbackUser.email,
+        initials: profile.initials || fallbackUser.initials,
+        avatar: profile.avatar || "",
+      }
+    : { ...fallbackUser, avatar: "" };
 
-  function confirmLogout() {
+  async function confirmLogout() {
     setLogoutOpen(false);
     setOpenMobile(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    toast.success("Signed out");
     router.push("/login");
+    router.refresh();
   }
+
+  const sections = isAdmin
+    ? navSections
+    : navSections.filter((section) => section.title !== "Admin");
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -135,7 +160,7 @@ export default function DashboardSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {navSections.map((section) => (
+        {sections.map((section) => (
           <SidebarGroup key={section.title}>
             <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -174,6 +199,13 @@ export default function DashboardSidebar() {
                   tooltip={user.name}
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
+                    {user.avatar ? (
+                      <AvatarImage
+                        src={user.avatar}
+                        alt={user.name}
+                        className="rounded-lg object-cover"
+                      />
+                    ) : null}
                     <AvatarFallback className="rounded-lg bg-primary/15 text-primary">
                       {user.initials}
                     </AvatarFallback>
@@ -196,6 +228,13 @@ export default function DashboardSidebar() {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
+                      {user.avatar ? (
+                        <AvatarImage
+                          src={user.avatar}
+                          alt={user.name}
+                          className="rounded-lg object-cover"
+                        />
+                      ) : null}
                       <AvatarFallback className="rounded-lg bg-primary/15 text-primary">
                         {user.initials}
                       </AvatarFallback>

@@ -1,5 +1,6 @@
 import PostpilotChannels from "@/components/postpilot/PostpilotChannels";
 import PostpilotCreators from "@/components/postpilot/PostpilotCreators";
+import PostpilotFaq from "@/components/postpilot/PostpilotFaq";
 import PostpilotHero from "@/components/postpilot/PostpilotHero";
 import PostpilotHow from "@/components/postpilot/PostpilotHow";
 import PostpilotJourney from "@/components/postpilot/PostpilotJourney";
@@ -18,6 +19,7 @@ export default function Home() {
       <PostpilotCreators />
       <PostpilotTestimonials />
       <PostpilotPricing />
+      <PostpilotFaq />
     </PostpilotMarketingShell>
   );
 }

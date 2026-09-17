@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { FiArrowRight } from "react-icons/fi";
+import { openCookieConsentBanner } from "@/components/CookieConsentBanner";
 import PostpilotMark from "@/components/postpilot/PostpilotMark";
 
 const NAV_LINKS = [
@@ -15,8 +16,12 @@ const NAV_LINKS = [
 const COMPANY_LINKS = [
   { href: "/creators", label: "Creators" },
   { href: "/stories", label: "Stories" },
-  { href: "/login", label: "Log in" },
-  { href: "/forgot-password", label: "Reset password" },
+];
+
+const LEGAL_LINKS = [
+  { href: "/terms", label: "Terms" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/cookies", label: "Cookies" },
 ];
 
 export default function PostpilotFooter() {
@@ -90,6 +95,25 @@ export default function PostpilotFooter() {
                 </li>
               </ul>
             </div>
+            <div>
+              <h4>Legal</h4>
+              <ul>
+                {LEGAL_LINKS.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href}>{link.label}</Link>
+                  </li>
+                ))}
+                <li>
+                  <button
+                    type="button"
+                    className="pp-footer__text-btn"
+                    onClick={openCookieConsentBanner}
+                  >
+                    Manage cookies
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -105,7 +129,21 @@ export default function PostpilotFooter() {
 
         <div className="pp-footer__base">
           <p>A quiet queue for people who post on purpose</p>
-          <p>© {new Date().getFullYear()}</p>
+          <div className="pp-footer__base-links">
+            {LEGAL_LINKS.map((link) => (
+              <Link key={link.href} href={link.href}>
+                {link.label}
+              </Link>
+            ))}
+            <button
+              type="button"
+              className="pp-footer__text-btn"
+              onClick={openCookieConsentBanner}
+            >
+              Manage cookies
+            </button>
+            <p>© {new Date().getFullYear()}</p>
+          </div>
         </div>
       </div>
     </footer>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { Toaster } from "@/components/ui/sonner";
 import "./fonts-google.css";
 import "./globals.css";
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         {children}
         <Toaster />
+        <CookieConsentBanner />
       </body>
     </html>
   );

@@ -202,6 +202,19 @@
   color: var(--pp-ink);
 }
 
+.postpilot-root .pp-nav__link--active::after,
+.postpilot-root .pp-nav--stuck .pp-nav__link--active::after {
+  transform: scaleX(1);
+}
+
+.postpilot-root .pp-nav__link--active {
+  opacity: 1;
+}
+
+.postpilot-root .pp-nav--stuck .pp-nav__link--active {
+  color: var(--pp-blue-deep);
+}
+
 .postpilot-root .pp-nav__link:hover::after {
   transform: scaleX(1);
 }
@@ -669,6 +682,10 @@
   background:
     linear-gradient(180deg, #ffffff 0%, #cfe0fb 38%, #e8f1fc 72%, #ffffff 100%);
   padding: 96px 0 120px;
+}
+
+.pp-channels--plain {
+  background: #ffffff;
 }
 
 .pp-channels__inner {
@@ -2226,3 +2243,82 @@ a.pp-login__submit {
     transform: none !important;
   }
 }
+
+/* ——— Inner marketing page intro ——— */
+.pp-page-intro {
+  position: relative;
+  z-index: 3;
+  overflow: hidden;
+  padding: calc(var(--pp-nav-h) + 72px) 0 56px;
+  background: linear-gradient(180deg, #2b6dcf 3.32%, #5595f3 62%, #cfe0fb);
+}
+
+.pp-page-intro__inner {
+  position: relative;
+  z-index: 2;
+  max-width: var(--pp-max);
+  margin-inline: auto;
+  padding-inline: var(--pp-gutter);
+}
+
+.pp-page-intro__eyebrow {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cfe0fb;
+}
+
+.pp-page-intro__title {
+  margin: 0;
+  max-width: 16ch;
+  font-family: var(--pp-display);
+  font-size: clamp(40px, 6vw, 72px);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: #ffffff;
+}
+
+.pp-page-intro__sub {
+  margin: 18px 0 0;
+  max-width: 48ch;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+@media (max-width: 699px) {
+  .pp-page-intro {
+    padding: calc(var(--pp-nav-h) + 48px) 0 40px;
+  }
+}
+
+/* Blue top wash so home-style nav (white links) stays readable before scroll */
+.pp-page-pad {
+  position: relative;
+}
+
+.pp-page-pad::before {
+  content: "";
+  display: block;
+  height: calc(var(--pp-nav-h) + 56px);
+  background: linear-gradient(180deg, #2b6dcf 3.32%, #5595f3 70%, #cfe0fb);
+}
+
+.pp-page-pad > section:first-child {
+  padding-top: 56px;
+}
+
+@media (max-width: 699px) {
+  .pp-page-pad::before {
+    height: calc(var(--pp-nav-h) + 40px);
+  }
+
+  .pp-page-pad > section:first-child {
+    padding-top: 40px;
+  }
+}
+

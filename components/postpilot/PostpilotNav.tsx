@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { RiCloseLine, RiMenu4Fill } from "react-icons/ri";
 import PostpilotMark from "@/components/postpilot/PostpilotMark";
@@ -9,9 +10,9 @@ import PostpilotMark from "@/components/postpilot/PostpilotMark";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#creators", label: "Creators" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "/features", label: "Features" },
+  { href: "/creators", label: "Creators" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/login", label: "Log in" },
 ] as const;
 
@@ -58,6 +59,7 @@ const itemVariants = {
 };
 
 export default function PostpilotNav() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [stuck, setStuck] = useState(false);
 
@@ -89,6 +91,11 @@ export default function PostpilotNav() {
     setOpen(false);
   }
 
+  function isActive(href: string) {
+    if (href === "/login") return pathname === "/login";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
   const navClass = [
     "pp-nav",
     open ? "pp-nav--open" : "",
@@ -107,13 +114,22 @@ export default function PostpilotNav() {
 
         <nav className="pp-nav__links" aria-label="Primary">
           {LINKS.map((link) => (
-            <a key={link.href} className="pp-nav__link" href={link.href}>
+            <Link
+              key={link.href}
+              className={[
+                "pp-nav__link",
+                isActive(link.href) ? "pp-nav__link--active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              href={link.href}
+            >
               {link.label}
-            </a>
+            </Link>
           ))}
-          <a className="pp-nav__cta" href="/register">
+          <Link className="pp-nav__cta" href="/register">
             Start free
-          </a>
+          </Link>
         </nav>
 
         <button
@@ -165,20 +181,20 @@ export default function PostpilotNav() {
             <ul className="pp-nav__drawer-list">
               {LINKS.map((link) => (
                 <motion.li key={link.href} variants={itemVariants}>
-                  <a href={link.href} onClick={close}>
+                  <Link href={link.href} onClick={close}>
                     {link.label}
-                  </a>
+                  </Link>
                 </motion.li>
               ))}
             </ul>
             <motion.div variants={itemVariants}>
-              <a
+              <Link
                 className="pp-nav__drawer-cta"
                 href="/register"
                 onClick={close}
               >
                 Start free
-              </a>
+              </Link>
             </motion.div>
           </motion.nav>
         ) : null}

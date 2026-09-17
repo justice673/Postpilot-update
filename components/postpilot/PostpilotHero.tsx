@@ -99,7 +99,7 @@ export default function PostpilotHero() {
           <a className="pp-btn pp-btn--dark" href="/register">
             Start free
           </a>
-          <a className="pp-btn pp-btn--ghost" href="#how">
+          <a className="pp-btn pp-btn--ghost" href="/how">
             <span className="pp-hero__cta-label-full">See how it works</span>
             <span className="pp-hero__cta-label-short">How it works</span>
           </a>

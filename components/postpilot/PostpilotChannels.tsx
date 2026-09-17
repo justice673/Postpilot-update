@@ -4,10 +4,19 @@ import { motion } from "framer-motion";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function PostpilotChannels() {
+export default function PostpilotChannels({
+  tone = "wash",
+}: {
+  tone?: "wash" | "plain";
+}) {
   return (
-    <section className="pp-channels" id="features" aria-labelledby="pp-channels-title">
-      <div className="pp-channels__inner">
+    <section
+      className={["pp-channels", tone === "plain" ? "pp-channels--plain" : ""]
+        .filter(Boolean)
+        .join(" ")}
+      id="features"
+      aria-labelledby="pp-channels-title"
+    >      <div className="pp-channels__inner">
         <motion.p
           className="pp-channels__eyebrow"
           initial={{ opacity: 0, y: 16 }}

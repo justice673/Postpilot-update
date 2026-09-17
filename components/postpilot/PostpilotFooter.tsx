@@ -6,15 +6,15 @@ import { FiArrowRight } from "react-icons/fi";
 import PostpilotMark from "@/components/postpilot/PostpilotMark";
 
 const NAV_LINKS = [
-  { href: "#features", label: "Channels" },
-  { href: "#how", label: "How it works" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "/features", label: "Channels" },
+  { href: "/how", label: "How it works" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/register", label: "Start free" },
 ];
 
 const COMPANY_LINKS = [
-  { href: "#creators", label: "Creators" },
-  { href: "#testimonials", label: "Stories" },
+  { href: "/creators", label: "Creators" },
+  { href: "/stories", label: "Stories" },
   { href: "/login", label: "Log in" },
   { href: "/forgot-password", label: "Reset password" },
 ];

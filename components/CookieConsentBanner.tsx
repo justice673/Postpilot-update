@@ -81,7 +81,7 @@ export default function CookieConsentBanner() {
               <HiOutlineXMark className="size-5" />
             </button>
 
-            <div className="flex flex-col gap-4 pr-8 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:pr-10">
+            <div className="flex flex-col gap-3 pr-8 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:pr-10">
               <div className="min-w-0 flex-1">
                 <p
                   id="pp-cookie-title"
@@ -104,18 +104,18 @@ export default function CookieConsentBanner() {
                 </p>
               </div>
 
-              <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                 <button
                   type="button"
                   onClick={() => save(essentialOnly())}
-                  className="inline-flex h-10 items-center justify-center rounded-md border border-primary/25 bg-white px-4 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-primary/25 bg-white px-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 sm:px-4"
                 >
                   Essential only
                 </button>
                 <button
                   type="button"
                   onClick={() => save(acceptAll())}
-                  className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-[var(--pp-blue-deep)]"
+                  className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-[var(--pp-blue-deep)] sm:px-4"
                 >
                   Accept all
                 </button>

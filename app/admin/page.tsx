@@ -1,6 +1,9 @@
 import AdminOverview from "@/components/admin/AdminOverview";
 import { parseDateRangeParams } from "@/lib/date-range";
-import { getAdminOverview } from "@/lib/services/admin";
+import {
+  getAdminOverview,
+  listAdminActivity,
+} from "@/lib/services/admin";
 import { getAdminDashboardChartData } from "@/lib/services/admin-analytics";
 
 export default async function AdminPage({
@@ -11,7 +14,7 @@ export default async function AdminPage({
   const params = await searchParams;
   const range = parseDateRangeParams(params);
 
-  const [overview, activity] = await Promise.all([
+  const [overview, activity, recentActivity] = await Promise.all([
     getAdminOverview(range).catch(() => ({
       totalUsers: 0,
       totalPosts: 0,
@@ -22,7 +25,14 @@ export default async function AdminPage({
       linkedinConnectedUsers: 0,
     })),
     getAdminDashboardChartData(range ?? 7).catch(() => []),
+    listAdminActivity(40).catch(() => []),
   ]);
 
-  return <AdminOverview overview={overview} activity={activity} />;
+  return (
+    <AdminOverview
+      overview={overview}
+      activity={activity}
+      recentActivity={recentActivity}
+    />
+  );
 }

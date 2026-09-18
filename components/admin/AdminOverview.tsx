@@ -135,7 +135,7 @@ export default function AdminOverview({
           Admin overview
         </h1>
         <p className="mt-2 max-w-2xl text-[15px] text-muted-foreground">
-          System-wide stats and charts across X and LinkedIn
+          System-wide stats, charts, and recent activity across X and LinkedIn
           {range.active ? " for the selected date range" : ""}.
         </p>
       </div>

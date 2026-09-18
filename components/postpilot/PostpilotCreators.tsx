@@ -1,18 +1,24 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { FaLinkedinIn } from "react-icons/fa6";
+import { SiX } from "react-icons/si";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const creators = [
-  { handle: "@shipweekly", role: "Indie founder" },
-  { handle: "@threadcraft", role: "Newsletter" },
-  { handle: "@pixelops", role: "Design studio" },
-  { handle: "@growthlab", role: "Agency" },
-  { handle: "@buildinpublic", role: "Maker" },
-  { handle: "@quietqueue", role: "Creator" },
-  { handle: "@northstarhq", role: "SaaS team" },
-  { handle: "@draftroom", role: "Writer" },
+  { name: "@shipweekly", role: "Indie founder", platform: "x" as const },
+  { name: "Maya Chen", role: "Product lead", platform: "linkedin" as const },
+  { name: "@threadcraft", role: "Newsletter", platform: "x" as const },
+  { name: "Northstar HQ", role: "SaaS team", platform: "linkedin" as const },
+  { name: "@pixelops", role: "Design studio", platform: "x" as const },
+  { name: "Jordan Lee", role: "Writer", platform: "linkedin" as const },
+  { name: "@growthlab", role: "Agency", platform: "x" as const },
+  { name: "Amina K.", role: "Founder", platform: "linkedin" as const },
+  { name: "@buildinpublic", role: "Maker", platform: "x" as const },
+  { name: "Draft Room", role: "Content studio", platform: "linkedin" as const },
+  { name: "@quietqueue", role: "Creator", platform: "x" as const },
+  { name: "Sam Rivera", role: "Growth lead", platform: "linkedin" as const },
 ];
 
 export default function PostpilotCreators() {
@@ -47,18 +53,33 @@ export default function PostpilotCreators() {
           viewport={{ once: true, amount: 0.5 }}
           transition={{ duration: 0.6, ease, delay: 0.1 }}
         >
-          Founders, writers, and small teams who want a calm multi-channel
-          queue — not five tabs and a sticky note.
+          Founders, writers, and small teams who want one calm queue for X and
+          LinkedIn — not five tabs and a sticky note.
         </motion.p>
       </div>
 
       <div className="pp-creators__marquee" aria-hidden>
         <div className="pp-creators__track">
           {loop.map((c, i) => (
-            <div key={`${c.handle}-${i}`} className="pp-creators__chip">
-              <span className="pp-creators__chip-mark">𝕏</span>
+            <div key={`${c.name}-${i}`} className="pp-creators__chip">
+              <span
+                className={[
+                  "pp-creators__chip-mark",
+                  c.platform === "linkedin"
+                    ? "pp-creators__chip-mark--linkedin"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {c.platform === "linkedin" ? (
+                  <FaLinkedinIn aria-hidden />
+                ) : (
+                  <SiX aria-hidden />
+                )}
+              </span>
               <div>
-                <strong>{c.handle}</strong>
+                <strong>{c.name}</strong>
                 <em>{c.role}</em>
               </div>
             </div>

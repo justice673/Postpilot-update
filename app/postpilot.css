@@ -1249,6 +1249,15 @@
   font-weight: 700;
 }
 
+.pp-creators__chip-mark svg {
+  width: 15px;
+  height: 15px;
+}
+
+.pp-creators__chip-mark--linkedin {
+  background: #0a66c2;
+}
+
 .pp-creators__chip strong {
   display: block;
   font-size: 14px;

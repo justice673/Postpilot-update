@@ -11,6 +11,7 @@ const ROTATING_LINES = [
   "Draft with AI.",
   "Publish on time.",
   "Grow on X.",
+  "Grow on LinkedIn.",
 ] as const;
 
 const slide = {
@@ -85,8 +86,8 @@ export default function PostpilotHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease, delay: 0.32 }}
         >
-          Connect X, draft with AI, and schedule to your queue. Instagram,
-          LinkedIn, and more are on the way.
+          Connect X or LinkedIn, draft with AI, and schedule to your queue.
+          Instagram, TikTok, and more are on the way.
         </motion.p>
 
         <motion.div

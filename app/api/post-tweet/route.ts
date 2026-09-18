@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
       .from("posts")
       .select("*")
       .eq("status", "pending")
+      .eq("platform", "x")
       .lte("scheduled_at", new Date().toISOString())
       .order("scheduled_at", { ascending: true })
       .limit(1)

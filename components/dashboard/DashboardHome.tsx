@@ -5,10 +5,20 @@ import { GoClock } from "react-icons/go";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import { IoCreateOutline } from "react-icons/io5";
 import { PiCalendarLight, PiCheckCircle, PiQueue } from "react-icons/pi";
+import { FaLinkedinIn } from "react-icons/fa6";
 import { SiX } from "react-icons/si";
 import { ChartAreaPosts } from "@/components/dashboard/ChartAreaPosts";
 import { ChartBarCompose } from "@/components/dashboard/ChartBarCompose";
 import CountdownTimer from "@/components/dashboard/CountdownTimer";
+import {
+  PlatformBadge,
+  PlatformMark,
+} from "@/components/dashboard/PlatformMark";
+import {
+  formatConnectedChannels,
+  platformLabel,
+  resolvePlatform,
+} from "@/lib/platforms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -20,7 +30,12 @@ import {
 } from "@/components/ui/card";
 import { formatRelativeTime } from "@/lib/format";
 import type { DashboardChartPoint } from "@/lib/types/analytics";
-import type { ActivityItem, ScheduledPost } from "@/lib/types/posts";
+import type { PostingTimeBucket } from "@/lib/types/analytics";
+import type {
+  ActivityItem,
+  PostPlatform,
+  ScheduledPost,
+} from "@/lib/types/posts";
 import { cn } from "@/lib/utils";
 
 type QueueItem = {
@@ -28,6 +43,7 @@ type QueueItem = {
   body: string;
   time: string;
   status: "Scheduled" | "Published" | "Failed";
+  platform: PostPlatform;
   href: string;
 };
 
@@ -35,6 +51,8 @@ export default function DashboardHome({
   displayName,
   xConnected,
   xUsername,
+  linkedinConnected = false,
+  linkedinUsername = null,
   scheduledToday,
   publishedToday,
   pendingCount,
@@ -50,6 +68,8 @@ export default function DashboardHome({
   displayName: string;
   xConnected: boolean;
   xUsername: string | null;
+  linkedinConnected?: boolean;
+  linkedinUsername?: string | null;
   scheduledToday: number;
   publishedToday: number;
   pendingCount: number;
@@ -57,11 +77,23 @@ export default function DashboardHome({
   queue: QueueItem[];
   activity: ActivityItem[];
   chartData: DashboardChartPoint[];
-  postingTimes: { hour: string; count: number }[];
+  postingTimes: PostingTimeBucket[];
   bestTime: string;
   rangeActive?: boolean;
   rangeLabel?: string | null;
 }) {
+  const anyConnected = xConnected || linkedinConnected;
+  const connectedLabel = formatConnectedChannels({
+    xConnected,
+    xUsername,
+    linkedinConnected,
+    linkedinUsername,
+  });
+  const nextPlatform = nextPost
+    ? resolvePlatform(nextPost.platform)
+    : null;
+  const NextIcon =
+    nextPlatform === "linkedin" ? FaLinkedinIn : SiX;
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
@@ -74,7 +106,7 @@ export default function DashboardHome({
     {
       label: rangeActive ? "Scheduled" : "Scheduled today",
       value: String(scheduledToday),
-      hint: rangeActive ? "Pending in range" : "In your X queue",
+      hint: rangeActive ? "Pending in range" : "In your queue",
       icon: PiCalendarLight,
     },
     {
@@ -122,9 +154,11 @@ export default function DashboardHome({
           <p className="mt-2 max-w-lg text-sm text-muted-foreground sm:text-[15px]">
             {rangeActive && rangeLabel
               ? `Showing activity for ${rangeLabel}.`
-              : xConnected
-                ? `Your X queue${xUsername ? ` (@${xUsername})` : ""} is ready. Draft the next idea or let Gemini expand a prompt.`
-                : "Connect X to start scheduling — then draft or expand with AI."}
+              : anyConnected
+                ? `Your queue is ready${
+                    connectedLabel ? ` · ${connectedLabel}` : ""
+                  }. Draft the next idea or let Gemini expand a prompt.`
+                : "Connect X or LinkedIn to start scheduling — then draft or expand with AI."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -148,16 +182,16 @@ export default function DashboardHome({
         </div>
       </div>
 
-      {!xConnected ? (
+      {!anyConnected ? (
         <div className="flex flex-col gap-3 rounded-xl border border-[#dbe7f8] bg-[#f7faff] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-white">
               <SiX className="size-4" />
             </span>
             <div>
-              <p className="text-sm font-semibold">Connect X to publish</p>
+              <p className="text-sm font-semibold">Connect a channel to publish</p>
               <p className="text-xs text-muted-foreground">
-                Scheduling needs a linked X account.
+                Scheduling needs a linked X or LinkedIn account.
               </p>
             </div>
           </div>
@@ -165,7 +199,7 @@ export default function DashboardHome({
             href="/onboarding/connect"
             className={cn(buttonVariants(), "w-fit rounded-md shadow-none")}
           >
-            Connect X
+            Connect channels
           </Link>
         </div>
       ) : null}
@@ -197,8 +231,10 @@ export default function DashboardHome({
           <CardContent className="flex h-full flex-col justify-between gap-8 p-6 sm:p-7">
             <div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/15 px-2.5 py-1 text-xs font-semibold">
-                <SiX className="size-3" />
-                Next on X
+                <NextIcon className="size-3" />
+                {nextPlatform
+                  ? `Next on ${platformLabel(nextPlatform)}`
+                  : "Next up"}
               </div>
               {nextPost ? (
                 <>
@@ -223,7 +259,13 @@ export default function DashboardHome({
                 <>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-base font-semibold">Upcoming post</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold">Upcoming post</p>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                          <NextIcon className="size-2.5" />
+                          {platformLabel(nextPost.platform)}
+                        </span>
+                      </div>
                       <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-white/80">
                         {nextPost.content}
                       </p>
@@ -265,7 +307,7 @@ export default function DashboardHome({
                   ? rangeLabel
                     ? `Scheduled across ${rangeLabel}`
                     : "Posts in the selected range"
-                  : "What's lined up on X"}
+                  : "What's lined up across your channels"}
               </CardDescription>
             </div>
             <Link
@@ -300,14 +342,15 @@ export default function DashboardHome({
                   href={item.href}
                   className="flex items-start gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/70"
                 >
-                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">
-                    {item.status === "Published" ? "✓" : item.time}
-                  </div>
+                  <PlatformMark platform={item.platform} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold">
-                        {item.time}
-                      </p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-sm font-semibold">
+                          {item.time}
+                        </p>
+                        <PlatformBadge platform={item.platform} />
+                      </div>
                       <Badge
                         variant={
                           item.status === "Published"
@@ -336,8 +379,8 @@ export default function DashboardHome({
         data={chartData}
         description={
           rangeActive && rangeLabel
-            ? `Scheduled vs published · ${rangeLabel}`
-            : "Scheduled vs published over the last 90 days"
+            ? `By network · ${rangeLabel}`
+            : "Scheduled vs published by network over the last 90 days"
         }
       />
 
@@ -351,7 +394,7 @@ export default function DashboardHome({
             <CardDescription>
               {rangeActive
                 ? "Publishes and failures in the selected range."
-                : "Latest publishes and failures on your X account."}
+                : "Latest publishes and failures across your channels."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-0">
@@ -368,21 +411,27 @@ export default function DashboardHome({
                     i !== activity.length - 1 && "border-b border-border",
                   )}
                 >
-                  <span
-                    className={cn(
-                      "mt-1.5 size-2 shrink-0 rounded-full",
-                      item.status === "posted" ? "bg-emerald-500" : "bg-red-500",
-                    )}
-                  />
+                  <PlatformMark platform={item.platform} size="sm" className="mt-0.5" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-foreground">
-                      {item.status === "posted" ? "Published" : "Failed"} ·{" "}
-                      <span className="text-muted-foreground">
-                        {item.content.slice(0, 72)}
-                        {item.content.length > 72 ? "…" : ""}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {item.status === "posted" ? "Published" : "Failed"}
+                      </p>
+                      <PlatformBadge platform={item.platform} />
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          item.status === "posted"
+                            ? "bg-emerald-500"
+                            : "bg-red-500",
+                        )}
+                      />
+                    </div>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {item.content.slice(0, 72)}
+                      {item.content.length > 72 ? "…" : ""}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {formatRelativeTime(item.postedAt)}
                     </p>
                   </div>

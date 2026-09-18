@@ -304,7 +304,7 @@ export default function DashboardSidebar({
           <DialogHeader>
             <DialogTitle>Log out?</DialogTitle>
             <DialogDescription>
-              You’ll need to sign in again to manage your X queue and schedule.
+              You’ll need to sign in again to manage your queue and schedule.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:justify-end">

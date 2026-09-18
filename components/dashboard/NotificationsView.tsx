@@ -94,7 +94,8 @@ export default function NotificationsView({
           Alerts & email
         </h1>
         <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-          Choose what Postpilot emails you about your X queue. Emails send when
+          Choose what Postpilot emails you about your publishing queue. Emails
+          send when
           SMTP is configured on the server.
         </p>
       </div>
@@ -105,7 +106,7 @@ export default function NotificationsView({
             Publishing
           </CardTitle>
           <CardDescription>
-            Alerts tied to scheduled posts going live on X.
+            Alerts tied to scheduled posts going live on your channels.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

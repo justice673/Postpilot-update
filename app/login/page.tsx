@@ -4,7 +4,7 @@ import "../postpilot.css";
 
 export const metadata: Metadata = {
   title: "Sign in — Postpilot",
-  description: "Sign in to Postpilot to schedule and publish posts to X.",
+  description: "Sign in to Postpilot to schedule and publish posts to X and LinkedIn.",
 };
 
 export default async function LoginPage({

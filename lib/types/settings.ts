@@ -2,6 +2,8 @@ export interface UserSettings {
   id?: string;
   xConnected: boolean;
   xUsername: string;
+  linkedinConnected: boolean;
+  linkedinUsername: string;
   aiWritingEnabled: boolean;
   defaultPostingTimes: string[];
   n8nWebhookUrl: string;
@@ -15,6 +17,12 @@ export interface SettingsRow {
   x_username: string | null;
   x_access_token: string | null;
   x_access_secret: string | null;
+  linkedin_connected: boolean;
+  linkedin_username: string | null;
+  linkedin_access_token: string | null;
+  linkedin_refresh_token: string | null;
+  linkedin_token_expires_at: string | null;
+  linkedin_person_urn: string | null;
   ai_writing_enabled: boolean;
   default_posting_times: string[];
   n8n_webhook_url: string | null;

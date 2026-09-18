@@ -10,9 +10,9 @@ const plans = [
     name: "Free",
     price: "$0",
     period: "forever",
-    blurb: "Enough to connect X and feel the queue.",
+    blurb: "Enough to connect a channel and feel the queue.",
     features: [
-      "1 X account",
+      "1 connected channel (X or LinkedIn)",
       "10 scheduled posts / month",
       "Compose + preview",
       "Basic calendar",
@@ -44,7 +44,7 @@ const plans = [
     blurb: "Shared queue for small marketing crews.",
     features: [
       "Up to 5 seats",
-      "Shared X workspace",
+      "Shared channel workspace",
       "Approval-ready drafts",
       "Everything in Pro",
     ],
@@ -84,7 +84,7 @@ export default function PostpilotPricing() {
           viewport={{ once: true, amount: 0.5 }}
           transition={{ duration: 0.6, ease, delay: 0.1 }}
         >
-          Start free on X. Upgrade when the cadence gets serious.
+          Start free on X or LinkedIn. Upgrade when the cadence gets serious.
         </motion.p>
 
         <div className="pp-pricing__grid">

@@ -8,6 +8,8 @@ export default async function SettingsPage() {
     <SettingsView
       xConnected={Boolean(settings?.xConnected)}
       xUsername={settings?.xUsername ?? null}
+      linkedinConnected={Boolean(settings?.linkedinConnected)}
+      linkedinUsername={settings?.linkedinUsername ?? null}
     />
   );
 }

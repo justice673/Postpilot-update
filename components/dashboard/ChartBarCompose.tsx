@@ -10,20 +10,27 @@ import {
 } from "@/components/ui/card";
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import {
+  PLATFORM_CHART_COLORS,
+  type PostingTimeBucket,
+} from "@/lib/types/analytics";
 
 const chartConfig = {
-  count: { label: "Posts", color: "var(--chart-1)" },
+  x: { label: "X", color: PLATFORM_CHART_COLORS.x },
+  linkedin: { label: "LinkedIn", color: PLATFORM_CHART_COLORS.linkedin },
 } satisfies ChartConfig;
 
 export function ChartBarCompose({
   data,
   bestTime,
 }: {
-  data: { hour: string; count: number }[];
+  data: PostingTimeBucket[];
   bestTime?: string;
 }) {
   const total = data.reduce((sum, row) => sum + row.count, 0);
@@ -36,8 +43,8 @@ export function ChartBarCompose({
         </CardTitle>
         <CardDescription>
           {bestTime && bestTime !== "—"
-            ? `Your strongest hour so far is ${bestTime}.`
-            : "When your posts tend to go out"}
+            ? `Peak window so far is ${bestTime}, split by network.`
+            : "When your posts tend to go out, by network"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -61,10 +68,18 @@ export function ChartBarCompose({
               />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar
-                dataKey="count"
-                fill="var(--color-count)"
+                dataKey="x"
+                stackId="networks"
+                fill="var(--color-x)"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar
+                dataKey="linkedin"
+                stackId="networks"
+                fill="var(--color-linkedin)"
                 radius={[4, 4, 0, 0]}
               />
+              <ChartLegend content={<ChartLegendContent />} />
             </BarChart>
           </ChartContainer>
         )}

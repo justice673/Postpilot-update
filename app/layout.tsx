@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Postpilot — Connect your socials. Schedule once.",
   description:
-    "Link Instagram, LinkedIn, X, and more — then plan, approve, and publish from one calm queue.",
+    "Link X and LinkedIn today — then plan, approve, and publish from one calm queue. More networks on the way.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

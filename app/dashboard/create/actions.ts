@@ -169,14 +169,31 @@ export async function createPostAction(
     }
 
     const settings = await getSettings();
-    if (!settings.xConnected) {
+    const platform = input.platform ?? "x";
+
+    if (platform === "x" && !settings.xConnected) {
       return {
         success: false,
         error: "Connect your X account in Settings before scheduling posts.",
       };
     }
 
-    const post = await createPost(input);
+    if (platform === "linkedin" && !settings.linkedinConnected) {
+      return {
+        success: false,
+        error:
+          "Connect your LinkedIn account in Settings before scheduling posts.",
+      };
+    }
+
+    if (!settings.xConnected && !settings.linkedinConnected) {
+      return {
+        success: false,
+        error: "Connect a social account in Settings before scheduling posts.",
+      };
+    }
+
+    const post = await createPost({ ...input, platform });
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/schedule");

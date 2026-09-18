@@ -47,8 +47,8 @@ export default function PostpilotCreators() {
           viewport={{ once: true, amount: 0.5 }}
           transition={{ duration: 0.6, ease, delay: 0.1 }}
         >
-          Founders, writers, and small teams who want a calm X queue — not five
-          tabs and a sticky note.
+          Founders, writers, and small teams who want a calm multi-channel
+          queue — not five tabs and a sticky note.
         </motion.p>
       </div>
 

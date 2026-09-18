@@ -2,8 +2,6 @@
 
 import { useMemo } from "react";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -33,32 +31,40 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { ChartAreaPosts } from "@/components/dashboard/ChartAreaPosts";
+import {
+  PlatformBadge,
+  PlatformMark,
+} from "@/components/dashboard/PlatformMark";
 import type { AnalyticsData, DashboardChartPoint } from "@/lib/types/analytics";
+import { PLATFORM_CHART_COLORS } from "@/lib/types/analytics";
+import type { PostPlatform } from "@/lib/types/posts";
 import { cn } from "@/lib/utils";
 
 const weeklyConfig = {
-  posted: { label: "Published", color: "var(--chart-1)" },
+  xPosted: { label: "X published", color: PLATFORM_CHART_COLORS.x },
+  linkedinPosted: {
+    label: "LinkedIn published",
+    color: PLATFORM_CHART_COLORS.linkedin,
+  },
   failed: { label: "Failed", color: "#ef4444" },
-} satisfies ChartConfig;
-
-const activityConfig = {
-  scheduled: { label: "Scheduled", color: "var(--chart-1)" },
-  published: { label: "Published", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 const timesConfig = {
-  count: { label: "Posts", color: "var(--chart-1)" },
+  x: { label: "X", color: PLATFORM_CHART_COLORS.x },
+  linkedin: { label: "LinkedIn", color: PLATFORM_CHART_COLORS.linkedin },
 } satisfies ChartConfig;
 
-const successConfig = {
-  success: { label: "Success", color: "var(--chart-1)" },
-  failed: { label: "Failed", color: "#ef4444" },
+const networkMixConfig = {
+  x: { label: "X", color: PLATFORM_CHART_COLORS.x },
+  linkedin: { label: "LinkedIn", color: PLATFORM_CHART_COLORS.linkedin },
 } satisfies ChartConfig;
 
 type RecentPost = {
   id: string;
   content: string;
   status: "posted" | "failed";
+  platform: PostPlatform;
   when: string;
 };
 
@@ -84,48 +90,44 @@ export default function AnalyticsView({
     successRate,
     postingTimes,
     bestTime,
+    networkMix,
   } = data;
 
   const weeklyBarMax = useMemo(() => {
     const peak = weeklyPosts.reduce(
-      (max, day) => Math.max(max, day.posted + day.failed),
+      (max, day) =>
+        Math.max(max, day.xPosted + day.linkedinPosted + day.failed),
       0,
     );
     return Math.max(peak, 1);
   }, [weeklyPosts]);
-
-  const activityYMax = useMemo(() => {
-    const peak = chartData.reduce(
-      (max, point) => Math.max(max, point.scheduled + point.published),
-      0,
-    );
-    return Math.max(peak, 1);
-  }, [chartData]);
 
   const timesYMax = useMemo(() => {
     const peak = postingTimes.reduce((max, slot) => Math.max(max, slot.count), 0);
     return Math.max(peak, 1);
   }, [postingTimes]);
 
-  const pieData =
-    successRate === 0 && weeklyTotal === 0 && monthlyTotal === 0
-      ? [{ name: "success", value: 0, fill: "var(--color-success)" }]
-      : [
-          {
-            name: "success",
-            value: successRate,
-            fill: "var(--color-success)",
-          },
-          {
-            name: "failed",
-            value: Math.max(100 - successRate, 0),
-            fill: "var(--color-failed)",
-          },
-        ];
+  const networkPieData = [
+    {
+      name: "x",
+      value: networkMix.xPublished,
+      fill: "var(--color-x)",
+    },
+    {
+      name: "linkedin",
+      value: networkMix.linkedinPublished,
+      fill: "var(--color-linkedin)",
+    },
+  ].filter((d) => d.value > 0);
 
-  const hasWeeklyData = weeklyPosts.some((d) => d.posted > 0 || d.failed > 0);
+  const networkPublishedTotal =
+    networkMix.xPublished + networkMix.linkedinPublished;
+
+  const hasWeeklyData = weeklyPosts.some(
+    (d) => d.xPosted > 0 || d.linkedinPosted > 0 || d.failed > 0,
+  );
   const hasTimeData = postingTimes.some((slot) => slot.count > 0);
-  const hasDeliveryData = weeklyTotal > 0 || monthlyTotal > 0 || successRate > 0;
+  const hasNetworkMix = networkPublishedTotal > 0;
 
   const kpis = [
     {
@@ -171,7 +173,7 @@ export default function AnalyticsView({
         <p className="mt-2 max-w-lg text-sm text-muted-foreground">
           {rangeActive && rangeLabel
             ? `Showing performance for ${rangeLabel}.`
-            : "Track posting performance on X and see when your queue lands best."}
+            : "Track posting performance across your channels and see when your queue lands best."}
         </p>
       </div>
 
@@ -200,7 +202,9 @@ export default function AnalyticsView({
             <CardTitle className="font-[family-name:var(--pp-display)] text-xl font-medium">
               {rangeActive ? "Posts by weekday" : "Posts this week"}
             </CardTitle>
-            <CardDescription>Published vs failed by day</CardDescription>
+            <CardDescription>
+              Published by network vs failed, by day
+            </CardDescription>
           </CardHeader>
           <CardContent className="px-2 pb-4 sm:px-6">
             {!hasWeeklyData ? (
@@ -229,12 +233,20 @@ export default function AnalyticsView({
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar
-                    dataKey="posted"
-                    fill="var(--color-posted)"
-                    radius={[4, 4, 0, 0]}
+                    dataKey="xPosted"
+                    stackId="day"
+                    fill="var(--color-xPosted)"
+                    radius={[0, 0, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="linkedinPosted"
+                    stackId="day"
+                    fill="var(--color-linkedinPosted)"
+                    radius={[0, 0, 0, 0]}
                   />
                   <Bar
                     dataKey="failed"
+                    stackId="day"
                     fill="var(--color-failed)"
                     radius={[4, 4, 0, 0]}
                   />
@@ -248,23 +260,24 @@ export default function AnalyticsView({
         <Card className="border-border shadow-none">
           <CardHeader>
             <CardTitle className="font-[family-name:var(--pp-display)] text-xl font-medium">
-              Delivery success
+              Publishes by network
             </CardTitle>
             <CardDescription>
               {rangeActive
-                ? "Posted vs failed in range"
-                : "Posted vs failed overall"}
+                ? "Share of successful posts in range"
+                : "Share of successful posts overall"}
+              {` · ${successRate}% delivery success`}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4 pb-6">
-            {!hasDeliveryData ? (
+            {!hasNetworkMix ? (
               <p className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-                Publish a few posts to see delivery success.
+                Publish a few posts to see network mix.
               </p>
             ) : (
               <>
                 <ChartContainer
-                  config={successConfig}
+                  config={networkMixConfig}
                   className="aspect-square h-[220px] min-h-[220px] w-full max-w-[260px]"
                 >
                   <PieChart>
@@ -274,7 +287,7 @@ export default function AnalyticsView({
                       }
                     />
                     <Pie
-                      data={pieData.filter((d) => d.value > 0)}
+                      data={networkPieData}
                       dataKey="value"
                       nameKey="name"
                       innerRadius={58}
@@ -282,22 +295,38 @@ export default function AnalyticsView({
                       paddingAngle={3}
                       strokeWidth={0}
                     >
-                      {pieData
-                        .filter((d) => d.value > 0)
-                        .map((entry) => (
-                          <Cell key={entry.name} fill={entry.fill} />
-                        ))}
+                      {networkPieData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
+                      ))}
                     </Pie>
                   </PieChart>
                 </ChartContainer>
-                <div className="flex items-center gap-4 text-sm">
+                <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
                   <span className="inline-flex items-center gap-2 font-medium">
-                    <span className="size-2.5 rounded-full bg-primary" />
-                    Success {successRate}%
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ background: PLATFORM_CHART_COLORS.x }}
+                    />
+                    X {networkMix.xPublished}
+                    {networkPublishedTotal > 0
+                      ? ` · ${Math.round(
+                          (networkMix.xPublished / networkPublishedTotal) * 100,
+                        )}%`
+                      : ""}
                   </span>
-                  <span className="inline-flex items-center gap-2 font-medium text-muted-foreground">
-                    <span className="size-2.5 rounded-full bg-red-500" />
-                    Failed {Math.max(100 - successRate, 0)}%
+                  <span className="inline-flex items-center gap-2 font-medium">
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ background: PLATFORM_CHART_COLORS.linkedin }}
+                    />
+                    LinkedIn {networkMix.linkedinPublished}
+                    {networkPublishedTotal > 0
+                      ? ` · ${Math.round(
+                          (networkMix.linkedinPublished /
+                            networkPublishedTotal) *
+                            100,
+                        )}%`
+                      : ""}
                   </span>
                 </div>
               </>
@@ -306,113 +335,14 @@ export default function AnalyticsView({
         </Card>
       </div>
 
-      <Card className="border-border pt-0 shadow-none">
-        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
-          <div className="grid flex-1 gap-1">
-            <CardTitle className="font-[family-name:var(--pp-display)] text-xl font-medium">
-              Publishing activity
-            </CardTitle>
-            <CardDescription>
-              {rangeActive && rangeLabel
-                ? `Scheduled vs published · ${rangeLabel}`
-                : "Scheduled vs published over the last 30 days"}
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-          {chartData.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              No activity in this period yet.
-            </p>
-          ) : (
-            <ChartContainer
-              config={activityConfig}
-              className="aspect-auto h-[280px] min-h-[280px] w-full"
-            >
-              <AreaChart
-                data={chartData}
-                margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
-              >
-                <defs>
-                  <linearGradient id="fillScheduledA" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-scheduled)"
-                      stopOpacity={0.75}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-scheduled)"
-                      stopOpacity={0.08}
-                    />
-                  </linearGradient>
-                  <linearGradient id="fillPublishedA" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-published)"
-                      stopOpacity={0.7}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-published)"
-                      stopOpacity={0.06}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  minTickGap={28}
-                  tickFormatter={(value) =>
-                    new Date(value).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })
-                  }
-                />
-                <YAxis hide domain={[0, activityYMax]} allowDecimals={false} />
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      indicator="dot"
-                      labelFormatter={(value) =>
-                        new Date(value).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      }
-                    />
-                  }
-                />
-                <Area
-                  dataKey="published"
-                  type="linear"
-                  fill="url(#fillPublishedA)"
-                  stroke="var(--color-published)"
-                  strokeWidth={2}
-                  stackId="a"
-                  isAnimationActive={false}
-                />
-                <Area
-                  dataKey="scheduled"
-                  type="linear"
-                  fill="url(#fillScheduledA)"
-                  stroke="var(--color-scheduled)"
-                  strokeWidth={2}
-                  stackId="a"
-                  isAnimationActive={false}
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-              </AreaChart>
-            </ChartContainer>
-          )}
-        </CardContent>
-      </Card>
+      <ChartAreaPosts
+        data={chartData}
+        description={
+          rangeActive && rangeLabel
+            ? `By network · ${rangeLabel}`
+            : "Scheduled vs published by network over the last 30 days"
+        }
+      />
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <Card className="border-border shadow-none">
@@ -421,7 +351,7 @@ export default function AnalyticsView({
               Most active posting times
             </CardTitle>
             <CardDescription>
-              When your posts go live most often
+              When your posts go live most often, by network
               {bestTime !== "—" ? ` · peak ${bestTime}` : ""}
             </CardDescription>
           </CardHeader>
@@ -453,12 +383,21 @@ export default function AnalyticsView({
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
-                    dataKey="count"
-                    stroke="var(--color-count)"
+                    dataKey="x"
+                    stroke="var(--color-x)"
                     strokeWidth={2}
-                    dot={{ r: 3, fill: "var(--color-count)" }}
+                    dot={{ r: 3, fill: "var(--color-x)" }}
                     activeDot={{ r: 5 }}
                   />
+                  <Line
+                    type="monotone"
+                    dataKey="linkedin"
+                    stroke="var(--color-linkedin)"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: "var(--color-linkedin)" }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
                 </LineChart>
               </ChartContainer>
             )}
@@ -471,7 +410,7 @@ export default function AnalyticsView({
               Recent posts
             </CardTitle>
             <CardDescription>
-              Latest publishes and failures from your queue
+              Latest publishes and failures across your channels
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-1 p-3 pt-0 sm:p-4 sm:pt-0">
@@ -488,14 +427,13 @@ export default function AnalyticsView({
                     i !== recentPosts.length - 1 && "border-b border-border",
                   )}
                 >
-                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                    {i + 1}
-                  </div>
+                  <PlatformMark platform={post.platform} />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-sm leading-snug">
                       {post.content}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <PlatformBadge platform={post.platform} />
                       <Badge
                         variant={
                           post.status === "posted" ? "success" : "danger"

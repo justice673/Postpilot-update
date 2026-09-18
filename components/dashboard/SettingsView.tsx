@@ -41,19 +41,19 @@ const baseChannels: Omit<Channel, "status" | "handle">[] = [
     markClass: "bg-[#111111] text-white",
   },
   {
+    id: "linkedin",
+    name: "LinkedIn",
+    description: "Compose, schedule, and publish professional posts.",
+    Icon: FaLinkedinIn,
+    markClass: "bg-[#0a66c2] text-white",
+  },
+  {
     id: "instagram",
     name: "Instagram",
     description: "Feed & carousels — on the roadmap.",
     Icon: RiInstagramFill,
     markClass:
       "bg-[linear-gradient(135deg,#f58529,#dd2a7b,#8134af)] text-white",
-  },
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    description: "Professional posts — coming soon.",
-    Icon: FaLinkedinIn,
-    markClass: "bg-[#0a66c2] text-white",
   },
   {
     id: "tiktok",
@@ -74,9 +74,13 @@ const baseChannels: Omit<Channel, "status" | "handle">[] = [
 export default function SettingsView({
   xConnected = false,
   xUsername = null,
+  linkedinConnected = false,
+  linkedinUsername = null,
 }: {
   xConnected?: boolean;
   xUsername?: string | null;
+  linkedinConnected?: boolean;
+  linkedinUsername?: string | null;
 }) {
   const router = useRouter();
   const [disconnectId, setDisconnectId] = useState<string | null>(null);
@@ -94,51 +98,68 @@ export default function SettingsView({
             handle: xConnected && xUsername ? `@${xUsername}` : undefined,
           };
         }
+        if (channel.id === "linkedin") {
+          return {
+            ...channel,
+            status: linkedinConnected ? "connected" : "available",
+            handle:
+              linkedinConnected && linkedinUsername
+                ? linkedinUsername
+                : undefined,
+          };
+        }
         return { ...channel, status: "soon" as const };
       }),
-    [xConnected, xUsername],
+    [xConnected, xUsername, linkedinConnected, linkedinUsername],
   );
 
   const disconnectTarget = channels.find((c) => c.id === disconnectId) ?? null;
 
   async function confirmDisconnect() {
-    if (disconnectId !== "x") return;
+    if (disconnectId !== "x" && disconnectId !== "linkedin") return;
     setDisconnecting(true);
     setError(null);
 
+    const label = disconnectId === "linkedin" ? "LinkedIn" : "X";
+    const endpoint =
+      disconnectId === "linkedin"
+        ? "/api/auth/linkedin/disconnect"
+        : "/api/auth/x/disconnect";
+
     try {
-      const response = await fetch("/api/auth/x/disconnect", {
+      const response = await fetch(endpoint, {
         method: "POST",
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        throw new Error(body?.error || "Failed to disconnect X.");
+        throw new Error(body?.error || `Failed to disconnect ${label}.`);
       }
       setDisconnectId(null);
-      toast.success("X disconnected", {
+      toast.success(`${label} disconnected`, {
         description: "You can reconnect anytime from Settings.",
       });
       router.refresh();
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Failed to disconnect X.";
+        err instanceof Error ? err.message : `Failed to disconnect ${label}.`;
       setError(message);
-      toast.error("Couldn’t disconnect X", { description: message });
+      toast.error(`Couldn’t disconnect ${label}`, { description: message });
     } finally {
       setDisconnecting(false);
     }
   }
 
   function connectChannel(id: string) {
-    if (id !== "x") return;
+    if (id !== "x" && id !== "linkedin") return;
     setConnectingId(id);
-    window.location.href = "/api/auth/x";
+    window.location.href =
+      id === "linkedin" ? "/api/auth/linkedin" : "/api/auth/x";
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 md:gap-8">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 md:gap-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
@@ -148,8 +169,8 @@ export default function SettingsView({
             Connected channels
           </h1>
           <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-            Manage where Postpilot can publish. X is live; more networks are on
-            the way.
+            Manage where Postpilot can publish. X and LinkedIn are live; more
+            networks are on the way.
           </p>
         </div>
         <Link
@@ -166,10 +187,10 @@ export default function SettingsView({
         </p>
       ) : null}
 
-      <div className="grid gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {channels.map((channel) => (
           <Card key={channel.id} className="border-border shadow-none">
-            <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <CardContent className="flex h-full flex-col gap-4 p-4 sm:p-5">
               <div className="flex items-start gap-3">
                 <span
                   className={cn(
@@ -208,11 +229,12 @@ export default function SettingsView({
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2 sm:pl-4">
+              <div className="mt-auto flex shrink-0 items-center">
                 {channel.status === "connected" ? (
                   <Button
                     type="button"
                     variant="outline"
+                    className="border-red-500 bg-white text-red-600 hover:bg-red-50 hover:text-red-700"
                     onClick={() => setDisconnectId(channel.id)}
                   >
                     Disconnect

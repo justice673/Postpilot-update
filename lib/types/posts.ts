@@ -1,9 +1,11 @@
 export type PostStatus = "pending" | "posted" | "failed";
+export type PostPlatform = "x" | "linkedin";
 
 /** App-facing post shape (camelCase) */
 export interface ScheduledPost {
   id: string;
   content: string;
+  platform: PostPlatform;
   scheduledAt: string;
   status: PostStatus;
   hasImage: boolean;
@@ -20,6 +22,7 @@ export interface PostRow {
   id: string;
   user_id: string;
   content: string;
+  platform: PostPlatform;
   status: PostStatus;
   has_image: boolean;
   image_urls: string[] | null;
@@ -33,6 +36,7 @@ export interface PostRow {
 export interface CreatePostInput {
   content: string;
   scheduledAt: string;
+  platform?: PostPlatform;
   hasImage?: boolean;
   imageUrls?: string[];
   imagePrompt?: string | null;
@@ -54,6 +58,7 @@ export interface ActivityItem {
   content: string;
   postedAt: string;
   status: "posted" | "failed";
+  platform: PostPlatform;
 }
 
 export interface DashboardStats {

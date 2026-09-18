@@ -61,7 +61,7 @@ export default function PostpilotLogin({
         <p className="pp-login__panel-eyebrow">Account</p>
         <h2 className="pp-login__panel-title">Sign in to Postpilot</h2>
         <p className="pp-login__panel-sub">
-          Use your email, then connect X on the next screen.
+          Use your email, then connect X or LinkedIn on the next screen.
         </p>
         {signupsClosed ? (
           <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">

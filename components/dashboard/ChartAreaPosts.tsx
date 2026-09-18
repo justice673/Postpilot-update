@@ -17,17 +17,53 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import type { DashboardChartPoint } from "@/lib/types/analytics";
+import {
+  PLATFORM_CHART_COLORS,
+  type DashboardChartPoint,
+} from "@/lib/types/analytics";
 
 const chartConfig = {
   activity: { label: "Activity" },
-  scheduled: { label: "Scheduled", color: "var(--chart-1)" },
-  published: { label: "Published", color: "var(--chart-2)" },
+  xPublished: {
+    label: "X published",
+    color: PLATFORM_CHART_COLORS.x,
+  },
+  linkedinPublished: {
+    label: "LinkedIn published",
+    color: PLATFORM_CHART_COLORS.linkedin,
+  },
+  xScheduled: {
+    label: "X scheduled",
+    color: PLATFORM_CHART_COLORS.xMuted,
+  },
+  linkedinScheduled: {
+    label: "LinkedIn scheduled",
+    color: PLATFORM_CHART_COLORS.linkedinMuted,
+  },
 } satisfies ChartConfig;
+
+const SERIES = [
+  {
+    key: "xPublished" as const,
+    gradientId: "fillXPublished",
+  },
+  {
+    key: "linkedinPublished" as const,
+    gradientId: "fillLinkedInPublished",
+  },
+  {
+    key: "xScheduled" as const,
+    gradientId: "fillXScheduled",
+  },
+  {
+    key: "linkedinScheduled" as const,
+    gradientId: "fillLinkedInScheduled",
+  },
+];
 
 export function ChartAreaPosts({
   data,
-  description = "Scheduled vs published posts over time",
+  description = "Scheduled vs published by network",
 }: {
   data: DashboardChartPoint[];
   description?: string;
@@ -66,30 +102,27 @@ export function ChartAreaPosts({
               margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
             >
               <defs>
-                <linearGradient id="fillScheduled" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="var(--color-scheduled)"
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="var(--color-scheduled)"
-                    stopOpacity={0.1}
-                  />
-                </linearGradient>
-                <linearGradient id="fillPublished" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="var(--color-published)"
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="var(--color-published)"
-                    stopOpacity={0.1}
-                  />
-                </linearGradient>
+                {SERIES.map(({ key, gradientId }) => (
+                  <linearGradient
+                    key={gradientId}
+                    id={gradientId}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={`var(--color-${key})`}
+                      stopOpacity={0.85}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={`var(--color-${key})`}
+                      stopOpacity={0.08}
+                    />
+                  </linearGradient>
+                ))}
               </defs>
               <CartesianGrid vertical={false} />
               <XAxis
@@ -121,26 +154,19 @@ export function ChartAreaPosts({
                   />
                 }
               />
-              <Area
-                dataKey="published"
-                type="linear"
-                fill="url(#fillPublished)"
-                stroke="var(--color-published)"
-                strokeWidth={2}
-                baseValue={0}
-                stackId="a"
-                isAnimationActive={false}
-              />
-              <Area
-                dataKey="scheduled"
-                type="linear"
-                fill="url(#fillScheduled)"
-                stroke="var(--color-scheduled)"
-                strokeWidth={2}
-                baseValue={0}
-                stackId="a"
-                isAnimationActive={false}
-              />
+              {SERIES.map(({ key, gradientId }) => (
+                <Area
+                  key={key}
+                  dataKey={key}
+                  type="linear"
+                  fill={`url(#${gradientId})`}
+                  stroke={`var(--color-${key})`}
+                  strokeWidth={2}
+                  baseValue={0}
+                  stackId="networks"
+                  isAnimationActive={false}
+                />
+              ))}
               <ChartLegend content={<ChartLegendContent />} />
             </AreaChart>
           </ChartContainer>

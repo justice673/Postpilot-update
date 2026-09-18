@@ -36,6 +36,7 @@ import type {
   AdminOverview as AdminOverviewData,
 } from "@/lib/types/admin";
 import type { DashboardChartPoint } from "@/lib/types/analytics";
+import { PLATFORM_CHART_COLORS } from "@/lib/types/analytics";
 import { FiTrendingUp } from "react-icons/fi";
 import { PiCheckCircle, PiUsersThree } from "react-icons/pi";
 import { SiX } from "react-icons/si";
@@ -55,7 +56,8 @@ const signupConfig = {
 } satisfies ChartConfig;
 
 const timeConfig = {
-  count: { label: "Posts", color: "#2b6dcf" },
+  x: { label: "X", color: PLATFORM_CHART_COLORS.x },
+  linkedin: { label: "LinkedIn", color: PLATFORM_CHART_COLORS.linkedin },
 } satisfies ChartConfig;
 
 const STATUS_COLORS: Record<string, string> = {
@@ -546,7 +548,7 @@ export default function AdminAnalyticsView({
           <CardHeader>
             <CardTitle>Peak posting times</CardTitle>
             <CardDescription>
-              When posts go live most often across all users
+              When posts go live most often across all users, by network
               {analytics.bestTime !== "—"
                 ? ` · peak ${analytics.bestTime}`
                 : ""}
@@ -574,11 +576,19 @@ export default function AdminAnalyticsView({
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
-                    dataKey="count"
-                    stroke="var(--color-count)"
+                    dataKey="x"
+                    stroke="var(--color-x)"
                     strokeWidth={2}
-                    dot={{ r: 4, fill: "#2b6dcf" }}
+                    dot={{ r: 4, fill: PLATFORM_CHART_COLORS.x }}
                   />
+                  <Line
+                    type="monotone"
+                    dataKey="linkedin"
+                    stroke="var(--color-linkedin)"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: PLATFORM_CHART_COLORS.linkedin }}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
                 </LineChart>
               </ChartContainer>
             )}

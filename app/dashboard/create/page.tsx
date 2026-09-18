@@ -22,6 +22,8 @@ export default async function CreatePage({
     <CreatePostForm
       xConnected={Boolean(settings?.xConnected)}
       xUsername={settings?.xUsername ?? null}
+      linkedinConnected={Boolean(settings?.linkedinConnected)}
+      linkedinUsername={settings?.linkedinUsername ?? null}
       initialDate={initialDate ?? null}
       timeZone={profile?.timezone ?? null}
       platformAiEnabled={platform?.aiWritingEnabled ?? true}

@@ -14,17 +14,17 @@ import { useEffect, useRef, useState } from "react";
 const steps = [
   {
     id: "connect",
-    title: "Connect X",
-    body: "Secure OAuth in under a minute. We only take the publish permissions we need — never your password.",
+    title: "Connect a channel",
+    body: "Secure OAuth for X or LinkedIn in under a minute. We only take the publish permissions we need — never your password.",
     image: "/postpilot/how-connect.png",
-    alt: "Connected channels settings with Connect X and other networks coming soon",
+    alt: "Connected channels settings with X and LinkedIn connected, more networks coming soon",
   },
   {
     id: "compose",
     title: "Compose or expand",
-    body: "Write it yourself, or drop a prompt and let Gemini draft the post. Add up to four images, then preview how it lands on X.",
+    body: "Write it yourself, or drop a prompt and let Gemini draft the post. Add images, pick X or LinkedIn, then preview how it lands.",
     image: "/postpilot/how-compose.png",
-    alt: "Compose for X editor with draft, images, schedule controls, and live preview",
+    alt: "Compose editor with draft, images, schedule controls, and live preview for X or LinkedIn",
   },
   {
     id: "schedule",

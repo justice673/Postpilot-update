@@ -38,12 +38,18 @@ export default async function DashboardPage({
       getRecentActivity(6, range).catch(() => []),
       getDashboardChartData(range ?? 90).catch(() => []),
       getAnalytics(range).catch(() => ({
-        postingTimes: [] as { hour: string; count: number }[],
+        postingTimes: [] as {
+          hour: string;
+          count: number;
+          x: number;
+          linkedin: number;
+        }[],
         bestTime: "—",
         weeklyPosts: [],
         monthlyTotal: 0,
         weeklyTotal: 0,
         successRate: 0,
+        networkMix: { xPublished: 0, linkedinPublished: 0 },
       })),
       getPosts().catch(() => []),
       getProfile().catch(() => null),
@@ -86,6 +92,7 @@ export default async function DashboardPage({
         : post.status === "failed"
           ? ("Failed" as const)
           : ("Scheduled" as const),
+    platform: post.platform ?? "x",
     href: "/dashboard/schedule",
   }));
 
@@ -102,6 +109,8 @@ export default async function DashboardPage({
       displayName={profile?.name || "there"}
       xConnected={Boolean(settings?.xConnected)}
       xUsername={settings?.xUsername ?? null}
+      linkedinConnected={Boolean(settings?.linkedinConnected)}
+      linkedinUsername={settings?.linkedinUsername ?? null}
       scheduledToday={stats.scheduledToday}
       publishedToday={stats.publishedToday}
       pendingCount={pendingCount}

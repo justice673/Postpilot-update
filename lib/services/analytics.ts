@@ -27,6 +27,10 @@ function isInRange(date: Date, start: Date, end: Date): boolean {
   return date >= start && date < end;
 }
 
+function platformOf(post: ScheduledPost): "x" | "linkedin" {
+  return post.platform === "linkedin" ? "linkedin" : "x";
+}
+
 export async function getAnalytics(
   range?: DateRangeValue | null,
 ): Promise<AnalyticsData> {
@@ -54,12 +58,30 @@ export async function getAnalytics(
       return isInRange(timestamp, dayStart, dayEnd);
     });
 
+    const published = dayPosts.filter((post) => post.status === "posted");
+    const failed = dayPosts.filter((post) => post.status === "failed").length;
+    const xPosted = published.filter((post) => platformOf(post) === "x").length;
+    const linkedinPosted = published.filter(
+      (post) => platformOf(post) === "linkedin",
+    ).length;
+
     return {
       day,
-      posted: dayPosts.filter((post) => post.status === "posted").length,
-      failed: dayPosts.filter((post) => post.status === "failed").length,
+      posted: published.length,
+      failed,
+      xPosted,
+      linkedinPosted,
     };
   });
+
+  const publishedScoped = scopedPosts.filter((post) => post.status === "posted");
+  const networkMix = {
+    xPublished: publishedScoped.filter((post) => platformOf(post) === "x")
+      .length,
+    linkedinPublished: publishedScoped.filter(
+      (post) => platformOf(post) === "linkedin",
+    ).length,
+  };
 
   const weeklyTotal = scopedPosts.filter(
     (post) =>
@@ -89,18 +111,29 @@ export async function getAnalytics(
       ? 0
       : Math.round((postedCount / completed.length) * 100);
 
-  const postingTimes = HOUR_BUCKETS.map((hour) => ({
-    hour: formatHourLabel(hour),
-    count: scopedPosts.filter((post) => {
+  const postingTimes = HOUR_BUCKETS.map((hour) => {
+    const inBucket = scopedPosts.filter((post) => {
       if (post.status !== "posted" || !post.postedAt) return false;
       const postHour = new Date(post.postedAt).getHours();
       return postHour >= hour && postHour < hour + 3;
-    }).length,
-  }));
+    });
+
+    const x = inBucket.filter((post) => platformOf(post) === "x").length;
+    const linkedin = inBucket.filter(
+      (post) => platformOf(post) === "linkedin",
+    ).length;
+
+    return {
+      hour: formatHourLabel(hour),
+      x,
+      linkedin,
+      count: x + linkedin,
+    };
+  });
 
   const bestBucket = postingTimes.reduce(
     (best, current) => (current.count > best.count ? current : best),
-    postingTimes[0] ?? { hour: "—", count: 0 },
+    postingTimes[0] ?? { hour: "—", count: 0, x: 0, linkedin: 0 },
   );
 
   return {
@@ -110,10 +143,49 @@ export async function getAnalytics(
     successRate,
     postingTimes,
     bestTime: bestBucket.count > 0 ? bestBucket.hour : "—",
+    networkMix,
   };
 }
 
-/** Daily scheduled vs published counts for the dashboard chart. */
+function chartPointForDay(
+  posts: ScheduledPost[],
+  dayStart: Date,
+  dayEnd: Date,
+): DashboardChartPoint {
+  let xScheduled = 0;
+  let linkedinScheduled = 0;
+  let xPublished = 0;
+  let linkedinPublished = 0;
+
+  for (const post of posts) {
+    const network = platformOf(post);
+    const scheduledAt = new Date(post.scheduledAt);
+    if (isInRange(scheduledAt, dayStart, dayEnd)) {
+      if (network === "linkedin") linkedinScheduled += 1;
+      else xScheduled += 1;
+    }
+
+    if (post.status === "posted" && post.postedAt) {
+      const postedAt = new Date(post.postedAt);
+      if (isInRange(postedAt, dayStart, dayEnd)) {
+        if (network === "linkedin") linkedinPublished += 1;
+        else xPublished += 1;
+      }
+    }
+  }
+
+  return {
+    date: format(dayStart, "yyyy-MM-dd"),
+    xScheduled,
+    linkedinScheduled,
+    xPublished,
+    linkedinPublished,
+    scheduled: xScheduled + linkedinScheduled,
+    published: xPublished + linkedinPublished,
+  };
+}
+
+/** Daily scheduled vs published counts for the dashboard chart (by network). */
 export async function getDashboardChartData(
   daysOrRange: number | DateRangeValue | null = 90,
 ): Promise<DashboardChartPoint[]> {
@@ -128,23 +200,7 @@ export async function getDashboardChartData(
       const dayStart = addDays(start, index);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = addDays(dayStart, 1);
-
-      const scheduled = posts.filter((post) => {
-        const scheduledAt = new Date(post.scheduledAt);
-        return isInRange(scheduledAt, dayStart, dayEnd);
-      }).length;
-
-      const published = posts.filter((post) => {
-        if (post.status !== "posted" || !post.postedAt) return false;
-        const postedAt = new Date(post.postedAt);
-        return isInRange(postedAt, dayStart, dayEnd);
-      }).length;
-
-      return {
-        date: format(dayStart, "yyyy-MM-dd"),
-        scheduled,
-        published,
-      };
+      return chartPointForDay(posts, dayStart, dayEnd);
     });
   }
 
@@ -155,22 +211,6 @@ export async function getDashboardChartData(
   return Array.from({ length: days }, (_, index) => {
     const dayStart = addDays(today, -(days - 1 - index));
     const dayEnd = addDays(dayStart, 1);
-
-    const scheduled = posts.filter((post) => {
-      const scheduledAt = new Date(post.scheduledAt);
-      return isInRange(scheduledAt, dayStart, dayEnd);
-    }).length;
-
-    const published = posts.filter((post) => {
-      if (post.status !== "posted" || !post.postedAt) return false;
-      const postedAt = new Date(post.postedAt);
-      return isInRange(postedAt, dayStart, dayEnd);
-    }).length;
-
-    return {
-      date: format(dayStart, "yyyy-MM-dd"),
-      scheduled,
-      published,
-    };
+    return chartPointForDay(posts, dayStart, dayEnd);
   });
 }

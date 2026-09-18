@@ -16,7 +16,8 @@ export default function PostpilotChannels({
         .join(" ")}
       id="features"
       aria-labelledby="pp-channels-title"
-    >      <div className="pp-channels__inner">
+    >
+      <div className="pp-channels__inner">
         <motion.p
           className="pp-channels__eyebrow"
           initial={{ opacity: 0, y: 16 }}
@@ -35,7 +36,7 @@ export default function PostpilotChannels({
           viewport={{ once: true, amount: 0.5 }}
           transition={{ duration: 0.65, ease, delay: 0.06 }}
         >
-          X is live.
+          X and LinkedIn are live.
           <br />
           More networks are next.
         </motion.h2>
@@ -47,8 +48,9 @@ export default function PostpilotChannels({
           viewport={{ once: true, amount: 0.5 }}
           transition={{ duration: 0.6, ease, delay: 0.12 }}
         >
-          Postpilot ships as an X-native scheduler today. Instagram, LinkedIn, and
-          more are on the roadmap — same calm queue when they land.
+          Schedule and publish to X and LinkedIn from one calm queue today.
+          Instagram, TikTok, and YouTube are on the roadmap — same workflow when
+          they land.
         </motion.p>
 
         <motion.div
@@ -63,8 +65,8 @@ export default function PostpilotChannels({
             className="pp-channels__img"
             src="/postpilot/channels-live.png"
             width={2198}
-            height={1418}
-            alt="Connected channels — X is live, Instagram, LinkedIn, TikTok, and YouTube coming soon"
+            height={1272}
+            alt="Connected channels — X and LinkedIn connected; Instagram, TikTok, and YouTube coming soon"
             decoding="async"
           />
         </motion.div>

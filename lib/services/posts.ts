@@ -30,6 +30,7 @@ function mapRowToPost(row: PostRow): ScheduledPost {
   return {
     id: row.id,
     content: row.content,
+    platform: row.platform ?? "x",
     scheduledAt: row.scheduled_at,
     status: row.status,
     hasImage: row.has_image,
@@ -54,6 +55,7 @@ function mapCreateInputToRow(
   return {
     user_id: userId,
     content: input.content.trim(),
+    platform: input.platform ?? "x",
     scheduled_at: input.scheduledAt,
     status: input.status ?? "pending",
     has_image: hasImage,
@@ -254,7 +256,7 @@ export async function getRecentActivity(
 
   let query = supabase
     .from("posts")
-    .select("id, content, status, posted_at, updated_at")
+    .select("id, content, status, platform, posted_at, updated_at")
     .eq("user_id", userId)
     .in("status", ["posted", "failed"])
     .order("posted_at", { ascending: false, nullsFirst: false })
@@ -275,6 +277,7 @@ export async function getRecentActivity(
     content: row.content,
     postedAt: row.posted_at ?? row.updated_at,
     status: row.status as "posted" | "failed",
+    platform: row.platform === "linkedin" ? "linkedin" : "x",
   }));
 }
 

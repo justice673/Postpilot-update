@@ -9,7 +9,7 @@ import "../postpilot.css";
 export const metadata: Metadata = {
   title: "Features — Postpilot",
   description:
-    "X-native scheduling with AI drafts, calendar queue, and more channels on the roadmap.",
+    "Schedule to X and LinkedIn with AI drafts, a calm calendar queue, and more channels on the roadmap.",
 };
 
 export default function FeaturesPage() {
@@ -18,7 +18,7 @@ export default function FeaturesPage() {
       <PostpilotPageIntro
         eyebrow="Features"
         title="Everything you need to post on purpose."
-        description="Connect X, draft with Gemini, and keep a calm queue from idea to publish — with more networks on the way."
+        description="Connect X or LinkedIn, draft with Gemini, and keep a calm queue from idea to publish — with more networks on the way."
       />
       <PostpilotChannels tone="plain" />
       <PostpilotHow />

@@ -85,6 +85,10 @@ export async function getAdminDashboardChartData(
         date: format(dayStart, "yyyy-MM-dd"),
         scheduled,
         published,
+        xScheduled: scheduled,
+        xPublished: published,
+        linkedinScheduled: 0,
+        linkedinPublished: 0,
       };
     });
   }
@@ -112,6 +116,10 @@ export async function getAdminDashboardChartData(
       date: format(dayStart, "yyyy-MM-dd"),
       scheduled,
       published,
+      xScheduled: scheduled,
+      xPublished: published,
+      linkedinScheduled: 0,
+      linkedinPublished: 0,
     };
   });
 }
@@ -190,18 +198,27 @@ export async function getAdminAnalytics(
       ? 0
       : Math.round((postedCount / completed.length) * 100);
 
-  const postingTimes = HOUR_BUCKETS.map((hour) => ({
-    hour: formatHourLabel(hour),
-    count: scopedPosts.filter((post) => {
+  const postingTimes = HOUR_BUCKETS.map((hour) => {
+    const inBucket = scopedPosts.filter((post) => {
       if (post.status !== "posted" || !post.posted_at) return false;
       const postHour = new Date(post.posted_at).getHours();
       return postHour >= hour && postHour < hour + 3;
-    }).length,
-  }));
+    });
+    const x = inBucket.filter(
+      (post) => (post.platform === "linkedin" ? "linkedin" : "x") === "x",
+    ).length;
+    const linkedin = inBucket.length - x;
+    return {
+      hour: formatHourLabel(hour),
+      x,
+      linkedin,
+      count: x + linkedin,
+    };
+  });
 
   const bestBucket = postingTimes.reduce(
     (best, current) => (current.count > best.count ? current : best),
-    postingTimes[0] ?? { hour: "—", count: 0 },
+    postingTimes[0] ?? { hour: "—", count: 0, x: 0, linkedin: 0 },
   );
 
   const pendingCount = scopedPosts.filter((p) => p.status === "pending").length;
@@ -246,6 +263,10 @@ export async function getAdminAnalytics(
         date: format(dayStart, "yyyy-MM-dd"),
         scheduled: signups,
         published: 0,
+        xScheduled: signups,
+        xPublished: 0,
+        linkedinScheduled: 0,
+        linkedinPublished: 0,
       };
     },
   );

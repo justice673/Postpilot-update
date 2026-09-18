@@ -12,7 +12,7 @@ export default function TermsPage() {
     <PostpilotLegalLayout
       eyebrow="Legal"
       title="Terms of Service"
-      description="The ground rules for using Postpilot to connect accounts, schedule posts, and publish to X."
+      description="The ground rules for using Postpilot to connect accounts, schedule posts, and publish to supported networks."
       updated="September 17, 2026"
     >
       <section>
@@ -28,8 +28,8 @@ export default function TermsPage() {
         <h2>2. The service</h2>
         <p>
           Postpilot helps you compose, schedule, and publish posts to supported
-          social networks (starting with X), including optional AI-assisted
-          drafting. Features may change as we ship updates.
+          social networks (including X and LinkedIn today), with optional
+          AI-assisted drafting. Features may change as we ship updates.
         </p>
       </section>
 
@@ -45,9 +45,10 @@ export default function TermsPage() {
       <section>
         <h2>4. Connected platforms</h2>
         <p>
-          When you connect X or another network, you authorize Postpilot to act
-          using the permissions you grant via OAuth. You must comply with that
-          platform’s terms. We do not ask for your social network password.
+          When you connect X, LinkedIn, or another network, you authorize
+          Postpilot to act using the permissions you grant via OAuth. You must
+          comply with that platform’s terms. We do not ask for your social
+          network password.
         </p>
       </section>
 

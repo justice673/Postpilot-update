@@ -9,6 +9,7 @@ import { HiOutlineBars3, HiOutlineEye } from "react-icons/hi2";
 import { IoCreateOutline } from "react-icons/io5";
 import { PiCalendarBlank, PiCalendarDots } from "react-icons/pi";
 import { SiX } from "react-icons/si";
+import { PlatformBadge } from "@/components/dashboard/PlatformMark";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -44,7 +45,10 @@ import {
   reschedulePostAction,
   updatePostAction,
 } from "@/app/dashboard/schedule/actions";
-import type { ScheduledPost as BackendScheduledPost } from "@/lib/types/posts";
+import type {
+  PostPlatform,
+  ScheduledPost as BackendScheduledPost,
+} from "@/lib/types/posts";
 import { toast } from "sonner";
 import {
   calendarDateKey,
@@ -62,6 +66,7 @@ type ScheduledPost = {
   content: string;
   scheduledAt: string;
   status: PostStatus;
+  platform: PostPlatform;
   hasImage?: boolean;
 };
 
@@ -163,6 +168,7 @@ function toUiPost(post: BackendScheduledPost): ScheduledPost {
     content: post.content,
     scheduledAt: post.scheduledAt,
     status: post.status,
+    platform: post.platform ?? "x",
     hasImage: post.hasImage,
   };
 }
@@ -858,20 +864,30 @@ export default function ScheduleView({
                                   <span className="text-sm font-semibold">
                                     {formatTime(new Date(post.scheduledAt))}
                                   </span>
-                                  <span
-                                    className={cn(
-                                      "rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                                      active
-                                        ? "bg-white/20 text-white"
-                                        : meta.variant === "success"
-                                          ? "bg-emerald-500/15 text-emerald-700"
-                                          : meta.variant === "warning"
-                                            ? "bg-amber-500/15 text-amber-700"
-                                            : "bg-red-500/10 text-red-600",
-                                    )}
-                                  >
-                                    {meta.label}
-                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <PlatformBadge
+                                      platform={post.platform}
+                                      className={
+                                        active
+                                          ? "bg-white/20 text-white"
+                                          : undefined
+                                      }
+                                    />
+                                    <span
+                                      className={cn(
+                                        "rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                                        active
+                                          ? "bg-white/20 text-white"
+                                          : meta.variant === "success"
+                                            ? "bg-emerald-500/15 text-emerald-700"
+                                            : meta.variant === "warning"
+                                              ? "bg-amber-500/15 text-amber-700"
+                                              : "bg-red-500/10 text-red-600",
+                                      )}
+                                    >
+                                      {meta.label}
+                                    </span>
+                                  </div>
                                 </div>
                                 <p
                                   className={cn(
@@ -1171,18 +1187,24 @@ function DayColumn({
                   >
                     {formatTime(new Date(post.scheduledAt))}
                   </span>
-                  <Badge
-                    variant={
-                      meta.variant === "destructive" ? "outline" : meta.variant
-                    }
-                    className={cn(
-                      !isMobile && "scale-90",
-                      meta.variant === "destructive" &&
-                        "border-red-500 text-red-600",
-                    )}
-                  >
-                    {meta.label}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <PlatformBadge
+                      platform={post.platform}
+                      className={!isMobile ? "scale-90" : undefined}
+                    />
+                    <Badge
+                      variant={
+                        meta.variant === "destructive" ? "outline" : meta.variant
+                      }
+                      className={cn(
+                        !isMobile && "scale-90",
+                        meta.variant === "destructive" &&
+                          "border-red-500 text-red-600",
+                      )}
+                    >
+                      {meta.label}
+                    </Badge>
+                  </div>
                 </div>
                 <p
                   className={cn(
@@ -1220,6 +1242,7 @@ function PostRow({
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm">{post.content}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
+          <PlatformBadge platform={post.platform} />
           <Badge
             variant={meta.variant === "destructive" ? "outline" : meta.variant}
             className={cn(

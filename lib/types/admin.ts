@@ -1,6 +1,9 @@
 import type { PostStatus } from "@/lib/types/posts";
 import type { UserRole } from "@/lib/types/profile";
-import type { DashboardChartPoint } from "@/lib/types/analytics";
+import type {
+  DashboardChartPoint,
+  PostingTimeBucket,
+} from "@/lib/types/analytics";
 
 export interface AdminOverview {
   totalUsers: number;
@@ -57,7 +60,7 @@ export interface AdminAnalyticsData {
   monthlyTotal: number;
   weeklyTotal: number;
   successRate: number;
-  postingTimes: { hour: string; count: number }[];
+  postingTimes: PostingTimeBucket[];
   bestTime: string;
   postStatusBreakdown: { name: string; value: number; status: PostStatus | "none" }[];
   userSignups: DashboardChartPoint[];

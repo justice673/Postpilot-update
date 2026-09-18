@@ -18,7 +18,7 @@ export class SettingsServiceError extends Error {
 }
 
 const SETTINGS_COLUMNS =
-  "id, user_id, x_connected, x_username, ai_writing_enabled, default_posting_times, n8n_webhook_url, openai_api_key, created_at, updated_at";
+  "id, user_id, x_connected, x_username, linkedin_connected, linkedin_username, ai_writing_enabled, default_posting_times, n8n_webhook_url, openai_api_key, created_at, updated_at";
 
 function getAdminClient() {
   return createAdminClient(
@@ -52,6 +52,8 @@ function mapRowToSettings(row: SettingsRow): UserSettings {
     id: row.id,
     xConnected: row.x_connected,
     xUsername: row.x_username ?? "",
+    linkedinConnected: row.linkedin_connected ?? false,
+    linkedinUsername: row.linkedin_username ?? "",
     aiWritingEnabled: row.ai_writing_enabled,
     defaultPostingTimes:
       row.default_posting_times.length > 0
@@ -106,6 +108,8 @@ async function createDefaultSettings(userId: string): Promise<UserSettings> {
       user_id: userId,
       x_connected: false,
       x_username: null,
+      linkedin_connected: false,
+      linkedin_username: null,
       ai_writing_enabled: true,
       default_posting_times: DEFAULT_POSTING_TIMES,
       n8n_webhook_url: null,
@@ -214,6 +218,142 @@ export async function disconnectXAccount(): Promise<UserSettings> {
       x_username: null,
       x_access_token: null,
       x_access_secret: null,
+    })
+    .eq("user_id", userId)
+    .select(SETTINGS_COLUMNS)
+    .maybeSingle();
+
+  throwIfError(error);
+
+  if (!data) {
+    throw new SettingsServiceError("Settings not found", "NOT_FOUND");
+  }
+
+  return mapRowToSettings(data as SettingsRow);
+}
+
+export type LinkedInTokens = {
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: string | null;
+  personUrn: string;
+  username: string;
+};
+
+/** Fetch LinkedIn OAuth tokens for posting (server/cron only). */
+export async function getLinkedInTokensForUser(
+  userId: string,
+): Promise<LinkedInTokens | null> {
+  const supabase = getAdminClient();
+
+  const { data, error } = await supabase
+    .from("settings")
+    .select(
+      "linkedin_connected, linkedin_username, linkedin_access_token, linkedin_refresh_token, linkedin_token_expires_at, linkedin_person_urn",
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new SettingsServiceError(error.message, error.code);
+  }
+
+  if (
+    !data?.linkedin_connected ||
+    !data.linkedin_access_token ||
+    !data.linkedin_person_urn
+  ) {
+    return null;
+  }
+
+  return {
+    accessToken: data.linkedin_access_token,
+    refreshToken: data.linkedin_refresh_token,
+    expiresAt: data.linkedin_token_expires_at,
+    personUrn: data.linkedin_person_urn,
+    username: data.linkedin_username ?? "",
+  };
+}
+
+/** Persist refreshed LinkedIn tokens (server/cron only). */
+export async function updateLinkedInTokensForUser(
+  userId: string,
+  input: {
+    accessToken: string;
+    refreshToken?: string | null;
+    expiresAt: string;
+  },
+): Promise<void> {
+  const supabase = getAdminClient();
+
+  const patch: Record<string, string | null> = {
+    linkedin_access_token: input.accessToken,
+    linkedin_token_expires_at: input.expiresAt,
+  };
+  if (input.refreshToken !== undefined) {
+    patch.linkedin_refresh_token = input.refreshToken;
+  }
+
+  const { error } = await supabase
+    .from("settings")
+    .update(patch)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new SettingsServiceError(error.message, error.code);
+  }
+}
+
+/** Save LinkedIn OAuth tokens after a successful connect flow. */
+export async function connectLinkedInAccount(input: {
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: string;
+  personUrn: string;
+  username: string;
+}): Promise<UserSettings> {
+  const supabase = await createClient();
+  const userId = await getAuthenticatedUserId();
+
+  await getSettings();
+
+  const { data, error } = await supabase
+    .from("settings")
+    .update({
+      linkedin_connected: true,
+      linkedin_username: input.username,
+      linkedin_access_token: input.accessToken,
+      linkedin_refresh_token: input.refreshToken,
+      linkedin_token_expires_at: input.expiresAt,
+      linkedin_person_urn: input.personUrn,
+    })
+    .eq("user_id", userId)
+    .select(SETTINGS_COLUMNS)
+    .maybeSingle();
+
+  throwIfError(error);
+
+  if (!data) {
+    throw new SettingsServiceError("Settings not found", "NOT_FOUND");
+  }
+
+  return mapRowToSettings(data as SettingsRow);
+}
+
+/** Disconnect the user's LinkedIn account. */
+export async function disconnectLinkedInAccount(): Promise<UserSettings> {
+  const supabase = await createClient();
+  const userId = await getAuthenticatedUserId();
+
+  const { data, error } = await supabase
+    .from("settings")
+    .update({
+      linkedin_connected: false,
+      linkedin_username: null,
+      linkedin_access_token: null,
+      linkedin_refresh_token: null,
+      linkedin_token_expires_at: null,
+      linkedin_person_urn: null,
     })
     .eq("user_id", userId)
     .select(SETTINGS_COLUMNS)

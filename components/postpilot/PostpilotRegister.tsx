@@ -94,8 +94,8 @@ export default function PostpilotRegister() {
         <p className="pp-login__panel-eyebrow">Create account</p>
         <h2 className="pp-login__panel-title">Start posting free</h2>
         <p className="pp-login__panel-sub">
-          Free tier includes 10 scheduled posts per month. No credit card
-          required.
+          Free tier includes 10 scheduled posts per month on X or LinkedIn. No
+          credit card required.
         </p>
       </motion.div>
 

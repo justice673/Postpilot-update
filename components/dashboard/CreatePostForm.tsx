@@ -12,7 +12,9 @@ import {
 import { GoClock } from "react-icons/go";
 import { HiOutlinePhoto, HiOutlineSparkles } from "react-icons/hi2";
 import { IoCreateOutline } from "react-icons/io5";
+import { FaLinkedinIn } from "react-icons/fa6";
 import { SiX } from "react-icons/si";
+import type { PostPlatform } from "@/lib/types/posts";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -40,8 +42,13 @@ import {
 } from "@/lib/timezone";
 import { DEFAULT_TIMEZONE } from "@/lib/types/profile";
 
-const MAX_CHARS = 280;
-const MAX_IMAGES = 4;
+const PLATFORM_LIMITS: Record<
+  PostPlatform,
+  { maxChars: number; maxImages: number; label: string }
+> = {
+  x: { maxChars: 280, maxImages: 4, label: "X" },
+  linkedin: { maxChars: 3000, maxImages: 9, label: "LinkedIn" },
+};
 
 type Mode = "write" | "prompt";
 
@@ -55,12 +62,16 @@ type LocalImage = {
 export default function CreatePostForm({
   xConnected = false,
   xUsername = null,
+  linkedinConnected = false,
+  linkedinUsername = null,
   initialDate,
   timeZone,
   platformAiEnabled = true,
 }: {
   xConnected?: boolean;
   xUsername?: string | null;
+  linkedinConnected?: boolean;
+  linkedinUsername?: string | null;
   initialDate?: string | null;
   timeZone?: string | null;
   platformAiEnabled?: boolean;
@@ -71,6 +82,9 @@ export default function CreatePostForm({
   );
   const minDate = todayKeyInZone(userTimeZone);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [platform, setPlatform] = useState<PostPlatform>(
+    xConnected ? "x" : linkedinConnected ? "linkedin" : "x",
+  );
   const [mode, setMode] = useState<Mode>("write");
   const [content, setContent] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -87,7 +101,18 @@ export default function CreatePostForm({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const charsLeft = MAX_CHARS - content.length;
+  const limits = PLATFORM_LIMITS[platform];
+  const maxChars = limits.maxChars;
+  const maxImages = limits.maxImages;
+  const platformConnected =
+    platform === "x" ? xConnected : linkedinConnected;
+  const platformHandle =
+    platform === "x"
+      ? xUsername
+        ? `@${xUsername}`
+        : null
+      : linkedinUsername || null;
+  const charsLeft = maxChars - content.length;
   const overLimit = charsLeft < 0;
 
   const previewText = useMemo(() => {
@@ -100,7 +125,7 @@ export default function CreatePostForm({
 
   function onPickFiles(files: FileList | null) {
     if (!files?.length) return;
-    const remaining = MAX_IMAGES - images.length;
+    const remaining = maxImages - images.length;
     const next = Array.from(files)
       .slice(0, remaining)
       .filter((f) => f.type.startsWith("image/"))
@@ -176,10 +201,10 @@ export default function CreatePostForm({
   }
 
   async function handleSchedule() {
-    if (!xConnected) {
-      setError("Connect your X account before scheduling.");
-      toast.error("Connect X first", {
-        description: "Link your X account before scheduling a post.",
+    if (!platformConnected) {
+      setError(`Connect your ${limits.label} account before scheduling.`);
+      toast.error(`Connect ${limits.label} first`, {
+        description: `Link your ${limits.label} account before scheduling a post.`,
       });
       return;
     }
@@ -212,8 +237,10 @@ export default function CreatePostForm({
       setError("Write a post (or expand a prompt) before scheduling.");
       return;
     }
-    if (finalContent.length > MAX_CHARS) {
-      setError("X posts must be 280 characters or fewer.");
+    if (finalContent.length > maxChars) {
+      setError(
+        `${limits.label} posts must be ${maxChars.toLocaleString()} characters or fewer.`,
+      );
       return;
     }
     if (date < minDate) {
@@ -234,6 +261,7 @@ export default function CreatePostForm({
       const result = await createPostAction({
         content: finalContent,
         scheduledAt,
+        platform,
         hasImage: imageUrls.length > 0,
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       });
@@ -248,9 +276,9 @@ export default function CreatePostForm({
         if (img.url.startsWith("blob:")) URL.revokeObjectURL(img.url);
       });
       setImages([]);
-      setMessage(`Queued for ${date} at ${time} on X.`);
+      setMessage(`Queued for ${date} at ${time} on ${limits.label}.`);
       toast.success("Post scheduled", {
-        description: `Queued for ${date} at ${time} on X.`,
+        description: `Queued for ${date} at ${time} on ${limits.label}.`,
       });
       router.push("/dashboard/schedule");
       router.refresh();
@@ -272,28 +300,36 @@ export default function CreatePostForm({
             Create
           </p>
           <h1 className="mt-1 font-[family-name:var(--pp-display)] text-3xl font-medium tracking-tight sm:text-[2.35rem] sm:leading-none">
-            Compose for X
+            Compose for {limits.label}
           </h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Write it yourself or drop a prompt for Gemini. Preview, attach up to
-            four images, then schedule.
+            Write it yourself or drop a prompt for Gemini. Preview, attach
+            images, then schedule to X or LinkedIn.
           </p>
         </div>
-        {xConnected ? (
+        {platformConnected ? (
           <Badge className="w-fit rounded-md bg-primary/10 text-primary hover:bg-primary/10">
-            <SiX className="mr-1.5 size-3" />
-            {xUsername ? `@${xUsername}` : "X connected"}
+            {platform === "linkedin" ? (
+              <FaLinkedinIn className="mr-1.5 size-3" />
+            ) : (
+              <SiX className="mr-1.5 size-3" />
+            )}
+            {platformHandle || `${limits.label} connected`}
           </Badge>
         ) : (
           <Link
-            href="/onboarding/connect"
+            href="/dashboard/settings"
             className={cn(
               buttonVariants({ variant: "outline" }),
               "w-fit rounded-md",
             )}
           >
-            <SiX className="mr-1.5 size-3" />
-            Connect X to schedule
+            {platform === "linkedin" ? (
+              <FaLinkedinIn className="mr-1.5 size-3" />
+            ) : (
+              <SiX className="mr-1.5 size-3" />
+            )}
+            Connect {limits.label} to schedule
           </Link>
         )}
       </div>
@@ -301,6 +337,42 @@ export default function CreatePostForm({
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <Card className="border-border shadow-none">
           <CardHeader className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPlatform("x");
+                  setImages((prev) => prev.slice(0, PLATFORM_LIMITS.x.maxImages));
+                }}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
+                  platform === "x"
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <SiX className="size-3.5" />
+                X
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPlatform("linkedin");
+                  setImages((prev) =>
+                    prev.slice(0, PLATFORM_LIMITS.linkedin.maxImages),
+                  );
+                }}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
+                  platform === "linkedin"
+                    ? "bg-[#0a66c2] text-white"
+                    : "bg-muted text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <FaLinkedinIn className="size-3.5" />
+                LinkedIn
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -398,14 +470,14 @@ export default function CreatePostForm({
                 <div>
                   <p className="text-sm font-semibold">Images</p>
                   <p className="text-xs text-muted-foreground">
-                    Up to 4 uploads. AI image gen coming soon.
+                    {`Up to ${maxImages} uploads. AI image gen coming soon.`}
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   className="rounded-md shadow-none"
-                  disabled={images.length >= MAX_IMAGES}
+                  disabled={images.length >= maxImages}
                   onClick={() => fileRef.current?.click()}
                 >
                   <HiOutlinePhoto className="size-4" />
@@ -508,7 +580,9 @@ export default function CreatePostForm({
               <CardTitle className="font-[family-name:var(--pp-display)] text-xl font-medium">
                 Preview
               </CardTitle>
-              <CardDescription>How this lands on X</CardDescription>
+              <CardDescription>
+                How this lands on {limits.label}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-xl border border-border bg-background p-4">
@@ -522,7 +596,8 @@ export default function CreatePostForm({
                         Justice
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        @justice
+                        {platformHandle ||
+                          (platform === "linkedin" ? "You" : "@you")}
                       </span>
                     </div>
                     <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">
@@ -566,8 +641,10 @@ export default function CreatePostForm({
                 </div>
               </div>
               <p className="mt-3 text-right text-xs text-muted-foreground">
-                {Math.max(content.length, 0)}/{MAX_CHARS}
-                {images.length > 0 ? ` · ${images.length}/4 images` : ""}
+                {Math.max(content.length, 0)}/{maxChars}
+                {images.length > 0
+                  ? ` · ${images.length}/${maxImages} images`
+                  : ""}
               </p>
             </CardContent>
           </Card>
@@ -579,7 +656,7 @@ export default function CreatePostForm({
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Schedule for peak hours, or post now from the queue later.
-                Instagram and LinkedIn publishing are coming next.
+                X and LinkedIn publish from the same calm queue.
               </p>
             </CardContent>
           </Card>

@@ -19,19 +19,25 @@ export default async function AnalyticsPage({
   const [data, chartData, posts] = await Promise.all([
     getAnalytics(range).catch(() => ({
       weeklyPosts: [
-        { day: "Mon", posted: 0, failed: 0 },
-        { day: "Tue", posted: 0, failed: 0 },
-        { day: "Wed", posted: 0, failed: 0 },
-        { day: "Thu", posted: 0, failed: 0 },
-        { day: "Fri", posted: 0, failed: 0 },
-        { day: "Sat", posted: 0, failed: 0 },
-        { day: "Sun", posted: 0, failed: 0 },
+        { day: "Mon", posted: 0, failed: 0, xPosted: 0, linkedinPosted: 0 },
+        { day: "Tue", posted: 0, failed: 0, xPosted: 0, linkedinPosted: 0 },
+        { day: "Wed", posted: 0, failed: 0, xPosted: 0, linkedinPosted: 0 },
+        { day: "Thu", posted: 0, failed: 0, xPosted: 0, linkedinPosted: 0 },
+        { day: "Fri", posted: 0, failed: 0, xPosted: 0, linkedinPosted: 0 },
+        { day: "Sat", posted: 0, failed: 0, xPosted: 0, linkedinPosted: 0 },
+        { day: "Sun", posted: 0, failed: 0, xPosted: 0, linkedinPosted: 0 },
       ],
       monthlyTotal: 0,
       weeklyTotal: 0,
       successRate: 0,
-      postingTimes: [] as { hour: string; count: number }[],
+      postingTimes: [] as {
+        hour: string;
+        count: number;
+        x: number;
+        linkedin: number;
+      }[],
       bestTime: "—",
+      networkMix: { xPublished: 0, linkedinPublished: 0 },
     })),
     getDashboardChartData(range ?? 30).catch(() => []),
     getPosts().catch(() => []),
@@ -58,6 +64,7 @@ export default async function AnalyticsPage({
       id: post.id,
       content: post.content,
       status: post.status as "posted" | "failed",
+      platform: post.platform ?? "x",
       when: new Date(post.postedAt ?? post.scheduledAt).toLocaleString(
         "en-US",
         {

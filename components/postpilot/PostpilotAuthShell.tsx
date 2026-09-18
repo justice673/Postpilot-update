@@ -12,7 +12,7 @@ const SOFT = "#9ec0f5";
 const perks = [
   "AI drafts with Gemini",
   "Smart queue for peak times",
-  "Publish to X from your account",
+  "Publish to X and LinkedIn",
 ];
 
 type AuthVariant = "login" | "register" | "forgot";
@@ -27,7 +27,7 @@ const copy: Record<
     mark: "timeline",
     lead: (
       <>
-        Sign in to draft, schedule, and publish on{" "}
+        Sign in to draft, schedule, and publish on X and{" "}
         <RoughAnnotate
           type="circle"
           color="#ffffff"
@@ -36,9 +36,9 @@ const copy: Record<
           iterations={2}
           delay={1100}
         >
-          X
+          LinkedIn
         </RoughAnnotate>
-        . Instagram, LinkedIn, and more are coming soon.
+        . Instagram and more are on the way.
       </>
     ),
   },
@@ -48,7 +48,7 @@ const copy: Record<
     mark: "autopilot",
     lead: (
       <>
-        Create an account, connect{" "}
+        Create an account, connect X or{" "}
         <RoughAnnotate
           type="circle"
           color="#ffffff"
@@ -57,7 +57,7 @@ const copy: Record<
           iterations={2}
           delay={1100}
         >
-          X
+          LinkedIn
         </RoughAnnotate>
         , then schedule your first post in minutes.
       </>
@@ -70,18 +70,7 @@ const copy: Record<
     lead: (
       <>
         Enter the email on your Postpilot account and we&apos;ll send a reset
-        link so you can get back to{" "}
-        <RoughAnnotate
-          type="circle"
-          color="#ffffff"
-          strokeWidth={2}
-          padding={[4, 10]}
-          iterations={2}
-          delay={1100}
-        >
-          X
-        </RoughAnnotate>
-        .
+        link so you can get back to your queue.
       </>
     ),
   },
@@ -187,7 +176,7 @@ export default function PostpilotAuthShell({
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.5 }}
           >
-            Free to start · No credit card · X-native
+            Free to start · No credit card · X & LinkedIn
           </motion.p>
         </div>
       </aside>

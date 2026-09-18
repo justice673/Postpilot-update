@@ -44,8 +44,8 @@ const networks: Network[] = [
   {
     id: "linkedin",
     name: "LinkedIn",
-    blurb: "Coming soon",
-    status: "soon",
+    blurb: "Live now — connect to publish",
+    status: "live",
     Icon: FaLinkedinIn,
     markClass: "bg-[#0a66c2] text-white",
   },
@@ -70,45 +70,83 @@ const networks: Network[] = [
 function ConnectSocialsOnboardingInner({
   initiallyConnected = false,
   xUsername = null,
+  linkedinConnected = false,
+  linkedinUsername = null,
 }: {
   initiallyConnected?: boolean;
   xUsername?: string | null;
+  linkedinConnected?: boolean;
+  linkedinUsername?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const xError = searchParams.get("x_error");
-  const justConnected = searchParams.get("connected") === "true";
+  const linkedinError = searchParams.get("linkedin_error");
+  const justConnected =
+    searchParams.get("connected") === "true" ||
+    searchParams.get("linkedin_connected") === "true";
 
-  const [step, setStep] = useState<1 | 2>(
-    initiallyConnected || justConnected ? 2 : 1,
-  );
+  const xIsConnected = initiallyConnected;
+  const linkedInIsConnected = linkedinConnected;
+  const anyConnected = xIsConnected || linkedInIsConnected || justConnected;
+
+  const [step, setStep] = useState<1 | 2>(anyConnected ? 2 : 1);
   const [selected, setSelected] = useState<string | null>("x");
   const [connecting, setConnecting] = useState(false);
-  const connected = initiallyConnected || justConnected;
 
   const errorMessage = useMemo(() => {
-    if (!xError) return null;
-    if (xError === "oauth_callback_invalid")
-      return "X connection was cancelled or incomplete.";
-    if (xError === "oauth_token_mismatch")
-      return "X connection expired. Please try again.";
-    return "Could not connect X. Please try again.";
-  }, [xError]);
+    if (xError) {
+      if (xError === "oauth_callback_invalid")
+        return "X connection was cancelled or incomplete.";
+      if (xError === "oauth_token_mismatch")
+        return "X connection expired. Please try again.";
+      return "Could not connect X. Please try again.";
+    }
+    if (linkedinError) {
+      if (linkedinError === "oauth_denied")
+        return "LinkedIn authorization was cancelled.";
+      if (linkedinError === "oauth_callback_invalid")
+        return "LinkedIn connection was cancelled or incomplete.";
+      if (linkedinError === "oauth_state_mismatch")
+        return "LinkedIn connection expired. Please try again.";
+      if (linkedinError === "missing_credentials")
+        return "LinkedIn app credentials are missing on the server.";
+      return "Could not connect LinkedIn. Please try again.";
+    }
+    return null;
+  }, [xError, linkedinError]);
 
   useEffect(() => {
     if (!errorMessage) return;
-    toast.error("Couldn’t connect X", { description: errorMessage });
-  }, [errorMessage]);
+    const title = linkedinError
+      ? "Couldn’t connect LinkedIn"
+      : "Couldn’t connect X";
+    toast.error(title, { description: errorMessage });
+  }, [errorMessage, linkedinError]);
+
+  function isNetworkConnected(id: string) {
+    if (id === "x") return xIsConnected;
+    if (id === "linkedin") return linkedInIsConnected;
+    return false;
+  }
 
   function connectSelected() {
-    if (selected !== "x") return;
+    if (selected !== "x" && selected !== "linkedin") return;
+    if (isNetworkConnected(selected)) {
+      setStep(2);
+      return;
+    }
     setConnecting(true);
-    window.location.href = "/api/auth/x";
+    window.location.href =
+      selected === "linkedin" ? "/api/auth/linkedin" : "/api/auth/x";
   }
 
   function continueFlow() {
     if (step === 1) {
-      if (selected === "x" && !connected) {
+      if (
+        (selected === "x" || selected === "linkedin") &&
+        !isNetworkConnected(selected)
+      ) {
         connectSelected();
         return;
       }
@@ -186,8 +224,8 @@ function ConnectSocialsOnboardingInner({
                 Connect your socials
               </h1>
               <p className="mt-3 text-[15px] leading-relaxed text-[#525252]">
-                X is live today. Pick it to connect — Instagram, LinkedIn, and
-                more are on the way.
+                X and LinkedIn are live. Pick one to connect — more networks
+                are on the way.
               </p>
             </div>
 
@@ -237,15 +275,19 @@ function ConnectSocialsOnboardingInner({
                       {network.name}
                     </span>
                     <span className="mt-1 text-xs font-medium text-[#525252]">
-                      {network.id === "x" && connected && xUsername
+                      {network.id === "x" && xIsConnected && xUsername
                         ? `@${xUsername}`
-                        : network.blurb}
+                        : network.id === "linkedin" &&
+                            linkedInIsConnected &&
+                            linkedinUsername
+                          ? linkedinUsername
+                          : network.blurb}
                     </span>
                     {network.status === "soon" ? (
                       <span className="mt-3 rounded-md bg-[#eef4fc] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1e4f9a]">
                         Soon
                       </span>
-                    ) : connected ? (
+                    ) : isNetworkConnected(network.id) ? (
                       <span className="mt-3 rounded-md bg-[#e8f8ef] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#15803d]">
                         Connected
                       </span>
@@ -279,12 +321,12 @@ function ConnectSocialsOnboardingInner({
               <SiX className="size-7" />
             </span>
             <h1 className="font-[family-name:var(--font-newsreader)] text-3xl font-medium tracking-tight sm:text-4xl">
-              {connected ? "X is connected." : "You’re ready to draft."}
+              {anyConnected ? "You’re connected." : "You’re ready to draft."}
             </h1>
             <p className="mt-3 text-[15px] leading-relaxed text-[#525252]">
-              {connected
+              {anyConnected
                 ? "Head to your dashboard to compose, expand with AI, and schedule your first post."
-                : "You can connect X anytime from Settings. Your queue is waiting."}
+                : "You can connect X or LinkedIn anytime from Settings. Your queue is waiting."}
             </p>
           </motion.div>
         )}
@@ -317,11 +359,17 @@ function ConnectSocialsOnboardingInner({
             >
               {connecting
                 ? "Connecting…"
-                : step === 1 && selected === "x" && !connected
+                : step === 1 &&
+                    selected === "x" &&
+                    !isNetworkConnected("x")
                   ? "Connect X"
-                  : step === 1
-                    ? "Continue"
-                    : "Go to dashboard"}
+                  : step === 1 &&
+                      selected === "linkedin" &&
+                      !isNetworkConnected("linkedin")
+                    ? "Connect LinkedIn"
+                    : step === 1
+                      ? "Continue"
+                      : "Go to dashboard"}
               {!connecting ? <FiChevronRight className="size-4" /> : null}
             </button>
           </div>
@@ -340,6 +388,8 @@ function ConnectSocialsOnboardingInner({
 export default function ConnectSocialsOnboarding(props: {
   initiallyConnected?: boolean;
   xUsername?: string | null;
+  linkedinConnected?: boolean;
+  linkedinUsername?: string | null;
 }) {
   return (
     <Suspense fallback={null}>

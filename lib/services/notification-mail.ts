@@ -76,6 +76,8 @@ export async function notifyPostPublished(input: {
   content: string;
   tweetId?: string;
   xUsername?: string | null;
+  linkedInPostId?: string;
+  linkedInUsername?: string | null;
 }): Promise<void> {
   try {
     const [settings, email] = await Promise.all([
@@ -86,18 +88,27 @@ export async function notifyPostPublished(input: {
     if (!settings.emailPostSuccess || !email) return;
 
     const preview = previewContent(input.content);
-    const handle = input.xUsername ? `@${input.xUsername}` : "X";
-    const tweetUrl = input.tweetId
-      ? `https://x.com/i/web/status/${input.tweetId}`
-      : `${appBaseUrl()}/dashboard/schedule`;
+    const isLinkedIn = Boolean(input.linkedInPostId || input.linkedInUsername);
+    const handle = isLinkedIn
+      ? input.linkedInUsername || "LinkedIn"
+      : input.xUsername
+        ? `@${input.xUsername}`
+        : "X";
+    const network = isLinkedIn ? "LinkedIn" : "X";
+    const postUrl = isLinkedIn
+      ? `${appBaseUrl()}/dashboard/schedule`
+      : input.tweetId
+        ? `https://x.com/i/web/status/${input.tweetId}`
+        : `${appBaseUrl()}/dashboard/schedule`;
+    const openLabel = isLinkedIn ? "Open schedule" : "Open on X";
 
     const text = [
-      "Your scheduled post went live on X.",
+      `Your scheduled post went live on ${network}.`,
       "",
       preview,
       "",
       `Account: ${handle}`,
-      `View: ${tweetUrl}`,
+      `View: ${postUrl}`,
     ].join("\n");
 
     await sendMail({
@@ -106,9 +117,9 @@ export async function notifyPostPublished(input: {
       text,
       html: wrapHtml(
         "Your post is live",
-        `<p style="margin:0 0 12px;line-height:1.5">Published to ${handle}.</p>
+        `<p style="margin:0 0 12px;line-height:1.5">Published to ${handle} on ${network}.</p>
          <blockquote style="margin:0 0 16px;padding:12px 14px;border-left:3px solid #2563eb;background:#f8fafc;border-radius:6px;line-height:1.5">${preview}</blockquote>
-         <p style="margin:0"><a href="${tweetUrl}" style="color:#2563eb">Open on X</a></p>`,
+         <p style="margin:0"><a href="${postUrl}" style="color:#2563eb">${openLabel}</a></p>`,
       ),
     });
   } catch (error) {

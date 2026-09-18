@@ -10,12 +10,12 @@ const faqs = [
   {
     question: "Is Postpilot free to start?",
     answer:
-      "Yes. The Free plan includes one X account and 10 scheduled posts per month — enough to connect, compose, and feel the queue before you upgrade.",
+      "Yes. The Free plan includes one connected channel and 10 scheduled posts per month — enough to connect X or LinkedIn, compose, and feel the queue before you upgrade.",
   },
   {
     question: "Which social networks are supported?",
     answer:
-      "X is live today. Instagram, LinkedIn, TikTok, and YouTube are on the roadmap. When they ship, they’ll use the same calm queue you already know.",
+      "X and LinkedIn are live today. Instagram, TikTok, and YouTube are on the roadmap. When they ship, they’ll use the same calm queue you already know.",
   },
   {
     question: "How does AI writing work?",
@@ -33,9 +33,9 @@ const faqs = [
       "Failed posts show up in your schedule and notifications so you can fix the issue and reschedule. Optional email alerts are available in notification settings.",
   },
   {
-    question: "How do I disconnect my X account?",
+    question: "How do I disconnect a social account?",
     answer:
-      "Open Settings, choose your connected X channel, and confirm disconnect. You can reconnect anytime with OAuth — we never ask for your X password.",
+      "Open Settings, choose the connected channel (X or LinkedIn), and confirm disconnect. You can reconnect anytime with OAuth — we never ask for your password.",
   },
 ];
 

@@ -7,7 +7,7 @@ import "../postpilot.css";
 export const metadata: Metadata = {
   title: "Creators — Postpilot",
   description:
-    "Built for founders, writers, and teams who post with intention on X.",
+    "Built for founders, writers, and teams who post with intention on X and LinkedIn.",
 };
 
 export default function CreatorsPage() {

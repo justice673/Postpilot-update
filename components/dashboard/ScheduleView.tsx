@@ -55,7 +55,7 @@ import {
   isPastCalendarDay,
   isSameCalendarDayInZone,
   isTodayCalendarDay,
-  resolveUserTimeZone,
+  todayKeyInZone,
 } from "@/lib/timezone";
 import { DEFAULT_TIMEZONE } from "@/lib/types/profile";
 
@@ -129,18 +129,26 @@ function formatDayShort(date: Date) {
   return date.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
 }
 
-function formatTime(date: Date) {
+function formatTime(date: Date, timeZone: string) {
   return date.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone,
   });
 }
 
-function formatListWhen(date: Date) {
+function formatListWhen(date: Date, timeZone: string) {
   return `${date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-  })} · ${formatTime(date)}`;
+    timeZone,
+  })} · ${formatTime(date, timeZone)}`;
+}
+
+/** Local calendar Date (Y/M/D) for "today" in an IANA zone — stable SSR + client. */
+function todayCalendarDate(timeZone: string, now = new Date()) {
+  const [y, m, d] = todayKeyInZone(timeZone, now).split("-").map(Number);
+  return new Date(y!, m! - 1, d!);
 }
 
 function toDateInput(date: Date) {
@@ -189,9 +197,23 @@ export default function ScheduleView({
   initialPosts?: BackendScheduledPost[];
   timeZone?: string | null;
 }) {
-  const userTimeZone = resolveUserTimeZone(
-    timeZone && timeZone !== DEFAULT_TIMEZONE ? timeZone : null,
-  );
+  // Prefer profile TZ; fall back to DEFAULT (stable on SSR + client). Never use
+  // browser Intl during render — that mismatches Vercel UTC vs the user's machine.
+  const profileTz =
+    timeZone?.trim() && timeZone !== DEFAULT_TIMEZONE ? timeZone.trim() : null;
+  const [browserTz, setBrowserTz] = useState<string | null>(null);
+  useEffect(() => {
+    if (profileTz) return;
+    try {
+      setBrowserTz(
+        Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE,
+      );
+    } catch {
+      setBrowserTz(DEFAULT_TIMEZONE);
+    }
+  }, [profileTz]);
+  const userTimeZone = profileTz ?? browserTz ?? DEFAULT_TIMEZONE;
+
   const carouselRef = useRef<HTMLDivElement>(null);
   const rangeMenuRef = useRef<HTMLDivElement>(null);
   const [posts, setPosts] = useState<ScheduledPost[]>(() =>
@@ -200,13 +222,12 @@ export default function ScheduleView({
   const [range, setRange] = useState<RangeMode>("month");
   const [view, setView] = useState<ViewMode>("calendar");
   const [rangeOpen, setRangeOpen] = useState(false);
-  const [cursorMonth, setCursorMonth] = useState(() => startOfMonth(new Date()));
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
-  const [selectedDay, setSelectedDay] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  const initialToday = todayCalendarDate(userTimeZone);
+  const [cursorMonth, setCursorMonth] = useState(() =>
+    startOfMonth(initialToday),
+  );
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(initialToday));
+  const [selectedDay, setSelectedDay] = useState(() => initialToday);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [editing, setEditing] = useState<ScheduledPost | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -637,6 +658,7 @@ export default function ScheduleView({
                         key={post.id}
                         post={post}
                         disabled={pendingId === post.id}
+                        timeZone={userTimeZone}
                         onEdit={openEdit}
                         onDelete={handleDelete}
                       />
@@ -862,7 +884,10 @@ export default function ScheduleView({
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="text-sm font-semibold">
-                                    {formatTime(new Date(post.scheduledAt))}
+                                    {formatTime(
+                                      new Date(post.scheduledAt),
+                                      userTimeZone,
+                                    )}
                                   </span>
                                   <div className="flex items-center gap-1.5">
                                     <PlatformBadge
@@ -1053,6 +1078,7 @@ export default function ScheduleView({
         post={viewing}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
+        timeZone={userTimeZone}
       />
     </div>
   );
@@ -1185,7 +1211,7 @@ function DayColumn({
                       isMobile ? "text-xs" : "text-[10px]",
                     )}
                   >
-                    {formatTime(new Date(post.scheduledAt))}
+                    {formatTime(new Date(post.scheduledAt), timeZone)}
                   </span>
                   <div className="flex items-center gap-1">
                     <PlatformBadge
@@ -1226,11 +1252,13 @@ function DayColumn({
 function PostRow({
   post,
   disabled,
+  timeZone,
   onEdit,
   onDelete,
 }: {
   post: ScheduledPost;
   disabled?: boolean;
+  timeZone: string;
   onEdit: (post: ScheduledPost) => void;
   onDelete: (id: string) => void;
 }) {
@@ -1253,7 +1281,7 @@ function PostRow({
             {meta.label}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {formatListWhen(new Date(post.scheduledAt))}
+            {formatListWhen(new Date(post.scheduledAt), timeZone)}
           </span>
           {post.hasImage ? (
             <Badge variant="secondary" className="rounded-md">
@@ -1307,10 +1335,12 @@ function PostDetailsDialog({
   post,
   open,
   onOpenChange,
+  timeZone,
 }: {
   post: ScheduledPost | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  timeZone: string;
 }) {
   if (!post) {
     return (
@@ -1336,7 +1366,7 @@ function PostDetailsDialog({
             Post details
           </DialogTitle>
           <DialogDescription>
-            This post was already published to X and can’t be edited.
+            This post was already published and can’t be edited.
           </DialogDescription>
         </DialogHeader>
 
@@ -1350,6 +1380,7 @@ function PostDetailsDialog({
             >
               {meta.label}
             </Badge>
+            <PlatformBadge platform={post.platform} />
             {post.hasImage ? (
               <Badge variant="secondary" className="rounded-md">
                 + image
@@ -1366,13 +1397,14 @@ function PostDetailsDialog({
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">Published</dt>
-              <dd className="mt-0.5 font-medium">{formatListWhen(when)}</dd>
+              <dd className="mt-0.5 font-medium">
+                {formatListWhen(when, timeZone)}
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Channel</dt>
-              <dd className="mt-0.5 inline-flex items-center gap-1.5 font-medium">
-                <SiX className="size-3.5" />
-                X
+              <dd className="mt-0.5">
+                <PlatformBadge platform={post.platform} />
               </dd>
             </div>
           </dl>

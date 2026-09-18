@@ -22,9 +22,9 @@ export default function CountdownTimer({
   targetDate: string;
   className?: string;
 }) {
-  const [remaining, setRemaining] = useState(() =>
-    formatRemaining(new Date(targetDate).getTime() - Date.now()),
-  );
+  // Avoid Date.now() in the initial render — SSR (UTC) vs browser clock causes
+  // React hydration error #418 on text nodes.
+  const [remaining, setRemaining] = useState<string | null>(null);
 
   useEffect(() => {
     function tick() {
@@ -38,6 +38,8 @@ export default function CountdownTimer({
   }, [targetDate]);
 
   return (
-    <span className={className ?? "font-mono tabular-nums"}>{remaining}</span>
+    <span className={className ?? "font-mono tabular-nums"}>
+      {remaining ?? "—:—:—"}
+    </span>
   );
 }

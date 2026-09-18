@@ -133,7 +133,7 @@ function throwIfError(error: { message: string; code?: string } | null) {
 }
 
 const POST_COLUMNS =
-  "id, user_id, content, status, has_image, image_urls, image_prompt, scheduled_at, posted_at, created_at, updated_at";
+  "id, user_id, content, platform, status, has_image, image_urls, image_prompt, scheduled_at, posted_at, created_at, updated_at";
 
 /** All posts for the signed-in user, ordered by schedule time ascending. */
 export async function getPosts(): Promise<ScheduledPost[]> {

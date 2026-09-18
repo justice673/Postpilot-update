@@ -1,3 +1,5 @@
+import type { PostPlatform } from "@/lib/types/posts";
+
 export type AdminActivityType =
   | "signup"
   | "scheduled"
@@ -17,6 +19,7 @@ export type AdminActivityItem = {
   /** Full post body when the event is post-related. */
   content?: string;
   postId?: string;
+  platform?: PostPlatform;
   scheduledAt?: string;
   postedAt?: string;
 };

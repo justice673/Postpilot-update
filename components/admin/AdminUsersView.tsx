@@ -12,6 +12,7 @@ import {
   FiUserCheck,
 } from "react-icons/fi";
 import { HiOutlineMagnifyingGlass } from "react-icons/hi2";
+import { FaLinkedinIn } from "react-icons/fa6";
 import { PiUsersThree } from "react-icons/pi";
 import { SiX } from "react-icons/si";
 import {
@@ -24,6 +25,7 @@ import AdminTablePagination, {
   paginateRows,
 } from "@/components/admin/AdminTablePagination";
 import ColumnHeaderMenu from "@/components/admin/ColumnHeaderMenu";
+import { PlatformMark } from "@/components/dashboard/PlatformMark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -59,7 +61,7 @@ import { toast } from "sonner";
 type RowUser = AdminUser;
 type RoleFilter = "all" | UserRole;
 type StatusFilter = "all" | "active" | "suspended";
-type XFilter = "all" | "connected" | "not_connected";
+type ChannelFilter = "all" | "x" | "linkedin" | "any" | "none";
 type NameSort = "default" | "az" | "za";
 type PostsSort = "default" | "high" | "low";
 type JoinedSort = "default" | "newest" | "oldest";
@@ -86,7 +88,7 @@ export default function AdminUsersView({
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [xFilter, setXFilter] = useState<XFilter>("all");
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
   const [nameSort, setNameSort] = useState<NameSort>("default");
   const [postsSort, setPostsSort] = useState<PostsSort>("default");
   const [joinedSort, setJoinedSort] = useState<JoinedSort>("default");
@@ -109,13 +111,18 @@ export default function AdminUsersView({
       if (roleFilter !== "all" && u.role !== roleFilter) return false;
       if (statusFilter === "active" && u.suspended) return false;
       if (statusFilter === "suspended" && !u.suspended) return false;
-      if (xFilter === "connected" && !u.xConnected) return false;
-      if (xFilter === "not_connected" && u.xConnected) return false;
+      if (channelFilter === "x" && !u.xConnected) return false;
+      if (channelFilter === "linkedin" && !u.linkedinConnected) return false;
+      if (channelFilter === "any" && !u.xConnected && !u.linkedinConnected)
+        return false;
+      if (channelFilter === "none" && (u.xConnected || u.linkedinConnected))
+        return false;
       if (!q) return true;
       return (
         u.displayName.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        (u.xUsername?.toLowerCase().includes(q) ?? false)
+        (u.xUsername?.toLowerCase().includes(q) ?? false) ||
+        (u.linkedinUsername?.toLowerCase().includes(q) ?? false)
       );
     });
 
@@ -145,7 +152,7 @@ export default function AdminUsersView({
     rangedUsers,
     roleFilter,
     statusFilter,
-    xFilter,
+    channelFilter,
     query,
     nameSort,
     postsSort,
@@ -160,7 +167,7 @@ export default function AdminUsersView({
     pageSize,
     roleFilter,
     statusFilter,
-    xFilter,
+    channelFilter,
     query,
     nameSort,
     postsSort,
@@ -182,8 +189,10 @@ export default function AdminUsersView({
   const stats = useMemo(() => {
     const active = rangedUsers.filter((u) => !u.suspended).length;
     const suspended = rangedUsers.filter((u) => u.suspended).length;
-    const connected = rangedUsers.filter((u) => u.xConnected).length;
-    const admins = rangedUsers.filter((u) => u.role === "super_admin").length;
+    const xConnected = rangedUsers.filter((u) => u.xConnected).length;
+    const linkedinConnected = rangedUsers.filter(
+      (u) => u.linkedinConnected,
+    ).length;
     return [
       {
         label: "Total users",
@@ -199,15 +208,17 @@ export default function AdminUsersView({
       },
       {
         label: "X connected",
-        value: connected,
-        hint: "Ready to publish",
+        value: xConnected,
+        hint: "Ready to publish on X",
         icon: SiX,
       },
       {
-        label: "Admins",
-        value: admins,
-        hint: suspended ? `${suspended} suspended` : "Super admin access",
-        icon: FiShield,
+        label: "LinkedIn connected",
+        value: linkedinConnected,
+        hint: suspended
+          ? `${suspended} suspended`
+          : "Ready to publish on LinkedIn",
+        icon: FaLinkedinIn,
       },
     ];
   }, [rangedUsers, range.active]);
@@ -215,7 +226,7 @@ export default function AdminUsersView({
   const filtersActive =
     roleFilter !== "all" ||
     statusFilter !== "all" ||
-    xFilter !== "all" ||
+    channelFilter !== "all" ||
     nameSort !== "default" ||
     postsSort !== "default" ||
     joinedSort !== "default" ||
@@ -325,7 +336,7 @@ export default function AdminUsersView({
                   setQuery("");
                   setRoleFilter("all");
                   setStatusFilter("all");
-                  setXFilter("all");
+                  setChannelFilter("all");
                   setNameSort("default");
                   setPostsSort("default");
                   setJoinedSort("default");
@@ -341,7 +352,7 @@ export default function AdminUsersView({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, email, or @handle…"
+              placeholder="Search name, email, or channel…"
               className="h-10 pl-9 shadow-none"
               aria-label="Search users"
             />
@@ -368,13 +379,15 @@ export default function AdminUsersView({
                 </th>
                 <th className="py-3 pr-4">
                   <ColumnHeaderMenu
-                    label="X"
-                    value={xFilter}
-                    onChange={setXFilter}
+                    label="Channels"
+                    value={channelFilter}
+                    onChange={setChannelFilter}
                     options={[
-                      { value: "all", label: "All accounts" },
-                      { value: "connected", label: "Connected" },
-                      { value: "not_connected", label: "Not connected" },
+                      { value: "all", label: "All channels" },
+                      { value: "x", label: "X connected" },
+                      { value: "linkedin", label: "LinkedIn connected" },
+                      { value: "any", label: "Any channel" },
+                      { value: "none", label: "No channels" },
                     ]}
                   />
                 </th>
@@ -471,10 +484,25 @@ export default function AdminUsersView({
                     </Link>
                   </td>
                   <td className="py-3 pr-4">
-                    {user.xConnected ? (
-                      <span className="text-emerald-700">
-                        @{user.xUsername}
-                      </span>
+                    {user.xConnected || user.linkedinConnected ? (
+                      <div className="flex flex-col gap-1.5">
+                        {user.xConnected ? (
+                          <span className="inline-flex items-center gap-1.5 text-foreground">
+                            <PlatformMark platform="x" size="sm" />
+                            <span className="text-emerald-700">
+                              @{user.xUsername}
+                            </span>
+                          </span>
+                        ) : null}
+                        {user.linkedinConnected ? (
+                          <span className="inline-flex items-center gap-1.5 text-foreground">
+                            <PlatformMark platform="linkedin" size="sm" />
+                            <span className="text-emerald-700">
+                              {user.linkedinUsername || "LinkedIn"}
+                            </span>
+                          </span>
+                        ) : null}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">
                         Not connected

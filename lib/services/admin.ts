@@ -1,5 +1,6 @@
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { isIsoInRange, type DateRangeValue } from "@/lib/date-range";
+import { platformLabel, resolvePlatform } from "@/lib/platforms";
 import type { AdminActivityItem } from "@/lib/types/admin-activity";
 import type {
   AdminOverview,
@@ -74,6 +75,7 @@ function mapPostRow(
     userEmail,
     userDisplayName,
     content: row.content,
+    platform: resolvePlatform(row.platform),
     scheduledAt: row.scheduled_at,
     status: row.status,
     hasImage: row.has_image,
@@ -94,7 +96,9 @@ export async function getAdminOverview(
   ] = await Promise.all([
     supabase.auth.admin.listUsers({ perPage: 1000 }),
     supabase.from("posts").select("status, scheduled_at, posted_at, user_id"),
-    supabase.from("settings").select("user_id, x_connected"),
+    supabase
+      .from("settings")
+      .select("user_id, x_connected, linkedin_connected"),
   ]);
 
   throwIfError(authError);
@@ -122,11 +126,10 @@ export async function getAdminOverview(
       })
     : postRows;
 
-  const xConnectedUsers = settingsRows.filter((row) => {
-    if (!row.x_connected) return false;
+  const scopedSettings = settingsRows.filter((row) => {
     if (scopedUserIds && !scopedUserIds.has(row.user_id)) return false;
     return true;
-  }).length;
+  });
 
   return {
     totalUsers: scopedUsers.length,
@@ -134,7 +137,9 @@ export async function getAdminOverview(
     pendingPosts: scopedPosts.filter((p) => p.status === "pending").length,
     postedPosts: scopedPosts.filter((p) => p.status === "posted").length,
     failedPosts: scopedPosts.filter((p) => p.status === "failed").length,
-    xConnectedUsers: range ? xConnectedUsers : settingsRows.filter((s) => s.x_connected).length,
+    xConnectedUsers: scopedSettings.filter((s) => s.x_connected).length,
+    linkedinConnectedUsers: scopedSettings.filter((s) => s.linkedin_connected)
+      .length,
   };
 }
 
@@ -153,7 +158,9 @@ export async function listAdminUsers(): Promise<AdminUserSummary[]> {
       .select("user_id, display_name, bio, avatar_url, timezone, role, created_at"),
     supabase
       .from("settings")
-      .select("user_id, x_connected, x_username, ai_writing_enabled"),
+      .select(
+        "user_id, x_connected, x_username, linkedin_connected, linkedin_username, ai_writing_enabled",
+      ),
     supabase.from("posts").select("user_id, status"),
   ]);
 
@@ -195,6 +202,8 @@ export async function listAdminUsers(): Promise<AdminUserSummary[]> {
         role: (profile?.role as AdminUserSummary["role"]) ?? "user",
         xConnected: userSettings?.x_connected ?? false,
         xUsername: userSettings?.x_username ?? "",
+        linkedinConnected: userSettings?.linkedin_connected ?? false,
+        linkedinUsername: userSettings?.linkedin_username ?? "",
         postCount: counts.total,
         pendingCount: counts.pending,
         postedCount: counts.posted,
@@ -236,13 +245,15 @@ export async function getAdminUserDetail(
       .maybeSingle(),
     supabase
       .from("settings")
-      .select("user_id, x_connected, x_username, ai_writing_enabled")
+      .select(
+        "user_id, x_connected, x_username, linkedin_connected, linkedin_username, ai_writing_enabled",
+      )
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
       .from("posts")
       .select(
-        "id, user_id, content, status, has_image, scheduled_at, posted_at, created_at",
+        "id, user_id, content, platform, status, has_image, scheduled_at, posted_at, created_at",
       )
       .eq("user_id", userId)
       .order("scheduled_at", { ascending: false }),
@@ -267,6 +278,8 @@ export async function getAdminUserDetail(
     role: (profile?.role as AdminUserSummary["role"]) ?? "user",
     xConnected: settings?.x_connected ?? false,
     xUsername: settings?.x_username ?? "",
+    linkedinConnected: settings?.linkedin_connected ?? false,
+    linkedinUsername: settings?.linkedin_username ?? "",
     postCount: counts.total,
     pendingCount: counts.pending,
     postedCount: counts.posted,
@@ -381,7 +394,7 @@ export async function listAdminPosts(limit = 100): Promise<AdminPost[]> {
   const { data: posts, error: postsError } = await supabase
     .from("posts")
     .select(
-      "id, user_id, content, status, has_image, scheduled_at, posted_at, created_at",
+      "id, user_id, content, platform, status, has_image, scheduled_at, posted_at, created_at",
     )
     .order("scheduled_at", { ascending: false })
     .limit(limit);
@@ -443,7 +456,7 @@ export async function listAdminActivity(
     supabase
       .from("posts")
       .select(
-        "id, user_id, content, status, scheduled_at, posted_at, created_at, updated_at",
+        "id, user_id, content, platform, status, scheduled_at, posted_at, created_at, updated_at",
       )
       .order("created_at", { ascending: false })
       .limit(200),
@@ -494,13 +507,15 @@ export async function listAdminActivity(
     const name = displayName(row.user_id);
     const email = emailByUser.get(row.user_id) ?? "";
     const snippet = truncateActivityText(row.content || "Untitled post");
+    const platform = resolvePlatform(row.platform);
+    const network = platformLabel(platform);
 
     if (row.status === "pending") {
       items.push({
         id: `scheduled:${row.id}`,
         type: "scheduled",
-        title: "Post scheduled",
-        description: `${name} scheduled “${snippet}”`,
+        title: `${network} post scheduled`,
+        description: `${name} scheduled “${snippet}” on ${network}`,
         href: `/admin/posts`,
         userId: row.user_id,
         userDisplayName: name,
@@ -508,14 +523,15 @@ export async function listAdminActivity(
         occurredAt: row.created_at || row.scheduled_at,
         content: row.content || "",
         postId: row.id,
+        platform,
         scheduledAt: row.scheduled_at,
       });
     } else if (row.status === "posted") {
       items.push({
         id: `posted:${row.id}`,
         type: "posted",
-        title: "Post published",
-        description: `${name} published “${snippet}”`,
+        title: `${network} post published`,
+        description: `${name} published “${snippet}” on ${network}`,
         href: `/admin/posts`,
         userId: row.user_id,
         userDisplayName: name,
@@ -523,6 +539,7 @@ export async function listAdminActivity(
         occurredAt: row.posted_at || row.updated_at || row.created_at,
         content: row.content || "",
         postId: row.id,
+        platform,
         scheduledAt: row.scheduled_at,
         postedAt: row.posted_at ?? undefined,
       });
@@ -530,8 +547,8 @@ export async function listAdminActivity(
       items.push({
         id: `failed:${row.id}`,
         type: "failed",
-        title: "Post failed",
-        description: `${name}’s post failed — “${snippet}”`,
+        title: `${network} post failed`,
+        description: `${name}’s ${network} post failed — “${snippet}”`,
         href: `/admin/posts`,
         userId: row.user_id,
         userDisplayName: name,
@@ -539,6 +556,7 @@ export async function listAdminActivity(
         occurredAt: row.updated_at || row.created_at,
         content: row.content || "",
         postId: row.id,
+        platform,
         scheduledAt: row.scheduled_at,
       });
     }

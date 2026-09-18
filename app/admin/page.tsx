@@ -19,6 +19,7 @@ export default async function AdminPage({
       postedPosts: 0,
       failedPosts: 0,
       xConnectedUsers: 0,
+      linkedinConnectedUsers: 0,
     })),
     getAdminDashboardChartData(range ?? 7).catch(() => []),
   ]);

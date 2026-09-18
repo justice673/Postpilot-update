@@ -14,6 +14,7 @@ import {
   FiTrash2,
   FiXCircle,
 } from "react-icons/fi";
+import { FaLinkedinIn } from "react-icons/fa6";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import { SiX } from "react-icons/si";
 import {
@@ -21,6 +22,7 @@ import {
   setUserSuspendedAction,
 } from "@/app/admin/users/actions";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
+import { PlatformMark } from "@/components/dashboard/PlatformMark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -320,6 +322,17 @@ export default function AdminUserDetailView({
               </div>
               <div className="rounded-xl border border-border bg-muted/20 p-3">
                 <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <FaLinkedinIn className="size-3" />
+                  LinkedIn account
+                </p>
+                <p className="font-medium">
+                  {user.linkedinConnected
+                    ? user.linkedinUsername || "Connected"
+                    : "Not connected"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <FiMapPin className="size-3" />
                   Timezone
                 </p>
@@ -377,6 +390,12 @@ export default function AdminUserDetailView({
               </span>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
+              <span className="text-muted-foreground">LinkedIn linked</span>
+              <span className="font-medium">
+                {user.linkedinConnected ? "Yes" : "No"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
               <span className="text-muted-foreground">User ID</span>
               <span className="font-mono text-xs font-medium">{user.userId}</span>
             </div>
@@ -428,6 +447,7 @@ export default function AdminUserDetailView({
               className="rounded-xl border border-border bg-muted/30 p-4"
             >
               <div className="flex flex-wrap items-center gap-2">
+                <PlatformMark platform={post.platform} size="sm" />
                 <PostStatusBadge status={post.status} />
                 <span className="text-xs text-muted-foreground">
                   {formatAdminDateTime(post.scheduledAt)}

@@ -13,6 +13,7 @@ import AdminTablePagination, {
   paginateRows,
 } from "@/components/admin/AdminTablePagination";
 import ColumnHeaderMenu from "@/components/admin/ColumnHeaderMenu";
+import { PlatformMark } from "@/components/dashboard/PlatformMark";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -366,7 +367,10 @@ export default function AdminNotificationsView({
                         >
                           <Icon className="size-3.5" />
                         </span>
-                        <span className="font-medium text-foreground">
+                        <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                          {item.platform ? (
+                            <PlatformMark platform={item.platform} size="sm" />
+                          ) : null}
                           {item.title}
                         </span>
                       </span>
@@ -436,7 +440,12 @@ export default function AdminNotificationsView({
                     <SelectedIcon className="size-5" />
                   </span>
                   <div className="min-w-0">
-                    <DialogTitle>{selected.title}</DialogTitle>
+                    <DialogTitle className="inline-flex items-center gap-2">
+                      {selected.platform ? (
+                        <PlatformMark platform={selected.platform} size="sm" />
+                      ) : null}
+                      {selected.title}
+                    </DialogTitle>
                     <DialogDescription className="mt-1">
                       {selectedMeta.label} ·{" "}
                       {formatRelativeTime(selected.occurredAt)}

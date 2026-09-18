@@ -1,4 +1,4 @@
-import type { PostStatus } from "@/lib/types/posts";
+import type { PostPlatform, PostStatus } from "@/lib/types/posts";
 import type { UserRole } from "@/lib/types/profile";
 import type {
   DashboardChartPoint,
@@ -12,6 +12,7 @@ export interface AdminOverview {
   postedPosts: number;
   failedPosts: number;
   xConnectedUsers: number;
+  linkedinConnectedUsers: number;
 }
 
 export interface AdminUserSummary {
@@ -21,6 +22,8 @@ export interface AdminUserSummary {
   role: UserRole;
   xConnected: boolean;
   xUsername: string;
+  linkedinConnected: boolean;
+  linkedinUsername: string;
   postCount: number;
   pendingCount: number;
   postedCount: number;
@@ -39,6 +42,7 @@ export interface AdminPost {
   userEmail: string;
   userDisplayName: string;
   content: string;
+  platform: PostPlatform;
   scheduledAt: string;
   status: PostStatus;
   hasImage: boolean;
@@ -62,7 +66,12 @@ export interface AdminAnalyticsData {
   successRate: number;
   postingTimes: PostingTimeBucket[];
   bestTime: string;
-  postStatusBreakdown: { name: string; value: number; status: PostStatus | "none" }[];
+  postStatusBreakdown: {
+    name: string;
+    value: number;
+    status: PostStatus | "none";
+  }[];
   userSignups: DashboardChartPoint[];
-  xConnectionBreakdown: { name: string; value: number }[];
+  /** Channel mix: X only / LinkedIn only / Both / Neither */
+  connectionBreakdown: { name: string; value: number }[];
 }

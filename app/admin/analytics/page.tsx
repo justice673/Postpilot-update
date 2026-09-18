@@ -27,7 +27,7 @@ const emptyAnalytics: AdminAnalyticsData = {
   bestTime: "—",
   postStatusBreakdown: [],
   userSignups: [],
-  xConnectionBreakdown: [],
+  connectionBreakdown: [],
 };
 
 export default async function AdminAnalyticsPage({
@@ -47,6 +47,7 @@ export default async function AdminAnalyticsPage({
       postedPosts: 0,
       failedPosts: 0,
       xConnectedUsers: 0,
+      linkedinConnectedUsers: 0,
     })),
     getAdminDashboardChartData(range ?? 30).catch(() => []),
     getAdminAnalytics(range).catch(() => emptyAnalytics),

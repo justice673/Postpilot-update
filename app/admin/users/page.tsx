@@ -12,6 +12,8 @@ export default async function AdminUsersPage() {
     role: user.role,
     xConnected: user.xConnected,
     xUsername: user.xUsername || null,
+    linkedinConnected: user.linkedinConnected,
+    linkedinUsername: user.linkedinUsername || null,
     timezone: user.timezone || "UTC",
     aiWritingEnabled: user.aiWritingEnabled ?? false,
     bio: user.bio || null,

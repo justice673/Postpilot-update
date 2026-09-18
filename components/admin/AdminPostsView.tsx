@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { FaLinkedinIn } from "react-icons/fa6";
 import { PiCheckCircle, PiClock, PiWarningCircle } from "react-icons/pi";
+import { SiX } from "react-icons/si";
 import { TiFolderOpen } from "react-icons/ti";
 import AdminStatCards from "@/components/admin/AdminStatCards";
 import AdminTablePagination, {
@@ -10,6 +12,7 @@ import AdminTablePagination, {
 } from "@/components/admin/AdminTablePagination";
 import SegmentedFilter from "@/components/admin/SegmentedFilter";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
+import { PlatformMark } from "@/components/dashboard/PlatformMark";
 import {
   Card,
   CardContent,
@@ -20,9 +23,10 @@ import {
 import { isIsoInRange, useAdminDateRange } from "@/lib/admin/date-range";
 import { formatAdminDateTime } from "@/lib/format";
 import type { AdminPost } from "@/lib/types/admin";
-import type { PostStatus } from "@/lib/types/posts";
+import type { PostPlatform, PostStatus } from "@/lib/types/posts";
 
-type FilterKey = "all" | PostStatus;
+type StatusFilter = "all" | PostStatus;
+type PlatformFilter = "all" | PostPlatform;
 
 export default function AdminPostsView({
   initialPosts,
@@ -30,7 +34,8 @@ export default function AdminPostsView({
   initialPosts: AdminPost[];
 }) {
   const range = useAdminDateRange();
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -47,13 +52,17 @@ export default function AdminPostsView({
   );
 
   const posts = useMemo(() => {
-    if (filter === "all") return rangedPosts;
-    return rangedPosts.filter((p) => p.status === filter);
-  }, [rangedPosts, filter]);
+    return rangedPosts.filter((p) => {
+      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      if (platformFilter !== "all" && p.platform !== platformFilter)
+        return false;
+      return true;
+    });
+  }, [rangedPosts, statusFilter, platformFilter]);
 
   useEffect(() => {
     setPage(1);
-  }, [range.from, range.to, filter, pageSize]);
+  }, [range.from, range.to, statusFilter, platformFilter, pageSize]);
 
   const pageCount = Math.max(1, Math.ceil(posts.length / pageSize) || 1);
   const safePage = Math.min(page, pageCount);
@@ -61,6 +70,11 @@ export default function AdminPostsView({
     () => paginateRows(posts, safePage, pageSize),
     [posts, safePage, pageSize],
   );
+
+  const xCount = rangedPosts.filter((p) => p.platform === "x").length;
+  const linkedinCount = rangedPosts.filter(
+    (p) => p.platform === "linkedin",
+  ).length;
 
   const stats = useMemo(() => {
     const pending = rangedPosts.filter((p) => p.status === "pending").length;
@@ -94,7 +108,11 @@ export default function AdminPostsView({
     ];
   }, [rangedPosts, range.active]);
 
-  const filters: { value: FilterKey; label: string; count: number }[] = [
+  const statusFilters: {
+    value: StatusFilter;
+    label: string;
+    count: number;
+  }[] = [
     { value: "all", label: "All", count: rangedPosts.length },
     {
       value: "pending",
@@ -113,6 +131,16 @@ export default function AdminPostsView({
     },
   ];
 
+  const platformFilters: {
+    value: PlatformFilter;
+    label: string;
+    count: number;
+  }[] = [
+    { value: "all", label: "All networks", count: rangedPosts.length },
+    { value: "x", label: "X", count: xCount },
+    { value: "linkedin", label: "LinkedIn", count: linkedinCount },
+  ];
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 md:gap-8">
       <div>
@@ -123,7 +151,7 @@ export default function AdminPostsView({
           All posts
         </h1>
         <p className="mt-2 max-w-2xl text-[15px] text-muted-foreground">
-          Latest scheduled and published posts across all users
+          Latest scheduled and published posts across X and LinkedIn
           {range.active ? " for the selected date range" : ""}.
         </p>
       </div>
@@ -131,25 +159,41 @@ export default function AdminPostsView({
       <AdminStatCards stats={stats} />
 
       <Card className="max-w-full overflow-hidden shadow-none">
-        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>{posts.length} posts</CardTitle>
-            <CardDescription>
-              Showing the most recent by schedule time
-            </CardDescription>
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>{posts.length} posts</CardTitle>
+              <CardDescription>
+                Showing the most recent by schedule time
+              </CardDescription>
+            </div>
+            <SegmentedFilter
+              layoutId="admin-posts-status-filter"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              items={statusFilters}
+            />
           </div>
-          <SegmentedFilter
-            layoutId="admin-posts-status-filter"
-            value={filter}
-            onChange={setFilter}
-            items={filters}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <SiX className="size-3.5 text-muted-foreground" aria-hidden />
+            <FaLinkedinIn
+              className="size-3.5 text-muted-foreground"
+              aria-hidden
+            />
+            <SegmentedFilter
+              layoutId="admin-posts-platform-filter"
+              value={platformFilter}
+              onChange={setPlatformFilter}
+              items={platformFilters}
+            />
+          </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full min-w-[800px] text-left text-sm">
+          <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground">
                 <th className="pb-3 pr-4 font-medium">User</th>
+                <th className="pb-3 pr-4 font-medium">Network</th>
                 <th className="pb-3 pr-4 font-medium">Content</th>
                 <th className="pb-3 pr-4 font-medium">Status</th>
                 <th className="pb-3 font-medium">Scheduled</th>
@@ -174,6 +218,9 @@ export default function AdminPostsView({
                       </p>
                     </Link>
                   </td>
+                  <td className="py-3 pr-4">
+                    <PlatformMark platform={post.platform} size="sm" />
+                  </td>
                   <td className="max-w-md py-3 pr-4">
                     <p className="line-clamp-3 whitespace-pre-wrap leading-relaxed">
                       {post.content}
@@ -195,28 +242,22 @@ export default function AdminPostsView({
               {posts.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="py-10 text-center text-muted-foreground"
                   >
-                    {range.active
-                      ? "No posts in this date range."
-                      : filter === "all"
-                        ? "No posts yet."
-                        : `No ${filter} posts.`}
+                    No posts match these filters.
                   </td>
                 </tr>
               ) : null}
             </tbody>
           </table>
-          {posts.length > 0 ? (
-            <AdminTablePagination
-              total={posts.length}
-              page={safePage}
-              pageSize={pageSize}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-            />
-          ) : null}
+          <AdminTablePagination
+            page={safePage}
+            pageSize={pageSize}
+            total={posts.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
     </div>

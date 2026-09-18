@@ -16,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 import AdminStatCards from "@/components/admin/AdminStatCards";
+import { ChartAreaPosts } from "@/components/dashboard/ChartAreaPosts";
 import {
   Card,
   CardContent,
@@ -37,14 +38,10 @@ import type {
 } from "@/lib/types/admin";
 import type { DashboardChartPoint } from "@/lib/types/analytics";
 import { PLATFORM_CHART_COLORS } from "@/lib/types/analytics";
+import { FaLinkedinIn } from "react-icons/fa6";
 import { FiTrendingUp } from "react-icons/fi";
-import { PiCheckCircle, PiUsersThree } from "react-icons/pi";
+import { PiCheckCircle } from "react-icons/pi";
 import { SiX } from "react-icons/si";
-
-const activityConfig = {
-  scheduled: { label: "Scheduled", color: "#5595f3" },
-  published: { label: "Published", color: "#2b6dcf" },
-} satisfies ChartConfig;
 
 const weeklyConfig = {
   posted: { label: "Published", color: "#10b981" },
@@ -64,8 +61,10 @@ const STATUS_COLORS: Record<string, string> = {
   Pending: "#5595f3",
   Published: "#10b981",
   Failed: "#ef4444",
-  Connected: "#2b6dcf",
-  "Not connected": "#94a3b8",
+  "X only": PLATFORM_CHART_COLORS.x,
+  "LinkedIn only": PLATFORM_CHART_COLORS.linkedin,
+  Both: "#2b6dcf",
+  Neither: "#94a3b8",
   Success: "#10b981",
 };
 
@@ -98,18 +97,6 @@ export default function AdminAnalyticsView({
   rangeLabel?: string | null;
 }) {
   const successRate = analytics.successRate;
-  const signupTotal = analytics.userSignups.reduce(
-    (sum, d) => sum + d.scheduled,
-    0,
-  );
-
-  const activityYMax = useMemo(() => {
-    const peak = activity.reduce(
-      (max, point) => Math.max(max, point.scheduled + point.published),
-      0,
-    );
-    return Math.max(peak, 1);
-  }, [activity]);
 
   const weeklyYMax = useMemo(() => {
     const peak = analytics.weeklyPosts.reduce(
@@ -157,7 +144,7 @@ export default function AdminAnalyticsView({
           : "#ef4444"),
   }));
 
-  const xPie = analytics.xConnectionBreakdown.map((item) => ({
+  const connectionPie = analytics.connectionBreakdown.map((item) => ({
     name: item.name,
     value: item.value,
     fill: STATUS_COLORS[item.name] ?? "#94a3b8",
@@ -182,16 +169,16 @@ export default function AdminAnalyticsView({
       icon: FiTrendingUp,
     },
     {
-      label: "New signups",
-      value: signupTotal,
-      hint: rangeActive && rangeLabel ? rangeLabel : "Last 30 days",
-      icon: PiUsersThree,
-    },
-    {
       label: "X connected",
       value: overview.xConnectedUsers,
       hint: `${overview.totalUsers} total users`,
       icon: SiX,
+    },
+    {
+      label: "LinkedIn connected",
+      value: overview.linkedinConnectedUsers,
+      hint: rangeActive && rangeLabel ? rangeLabel : "All accounts",
+      icon: FaLinkedinIn,
     },
   ];
 
@@ -213,87 +200,14 @@ export default function AdminAnalyticsView({
 
       <AdminStatCards stats={stats} />
 
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle>System post activity</CardTitle>
-          <CardDescription>
-            All users — scheduled vs published
-            {rangeActive && rangeLabel
-              ? ` · ${rangeLabel}`
-              : " over the last 30 days"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {activity.length === 0 ? (
-            <p className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-              No activity in this period yet.
-            </p>
-          ) : (
-            <ChartContainer
-              config={activityConfig}
-              className="aspect-auto h-[280px] min-h-[280px] w-full"
-            >
-              <AreaChart
-                data={activity}
-                margin={{ left: 8, right: 8, top: 8 }}
-              >
-                <defs>
-                  <linearGradient id="fillScheduledA" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="fillPublishedA" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2b6dcf" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#2b6dcf" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  minTickGap={28}
-                  tickFormatter={formatAxisDate}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  allowDecimals={false}
-                  width={32}
-                  domain={[0, activityYMax]}
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(value) =>
-                        formatTooltipDate(String(value))
-                      }
-                    />
-                  }
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Area
-                  type="linear"
-                  dataKey="scheduled"
-                  stroke="var(--color-scheduled)"
-                  fill="url(#fillScheduledA)"
-                  strokeWidth={2}
-                  isAnimationActive={false}
-                />
-                <Area
-                  type="linear"
-                  dataKey="published"
-                  stroke="var(--color-published)"
-                  fill="url(#fillPublishedA)"
-                  strokeWidth={2}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ChartContainer>
-          )}
-        </CardContent>
-      </Card>
+      <ChartAreaPosts
+        data={activity}
+        description={
+          rangeActive && rangeLabel
+            ? `All users — scheduled vs published by network · ${rangeLabel}`
+            : "All users — scheduled vs published by network over the last 30 days"
+        }
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="shadow-none">
@@ -435,11 +349,13 @@ export default function AdminAnalyticsView({
 
         <Card className="shadow-none">
           <CardHeader>
-            <CardTitle>X account connections</CardTitle>
-            <CardDescription>Users with X linked vs not</CardDescription>
+            <CardTitle>Channel connections</CardTitle>
+            <CardDescription>
+              X only, LinkedIn only, both, or neither
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            {xPie.length === 0 ? (
+            {connectionPie.length === 0 ? (
               <p className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
                 No users to show yet.
               </p>
@@ -450,7 +366,7 @@ export default function AdminAnalyticsView({
               >
                 <PieChart>
                   <Pie
-                    data={xPie}
+                    data={connectionPie}
                     dataKey="value"
                     nameKey="name"
                     innerRadius={58}
@@ -458,7 +374,7 @@ export default function AdminAnalyticsView({
                     paddingAngle={3}
                     strokeWidth={0}
                   >
-                    {xPie.map((entry) => (
+                    {connectionPie.map((entry) => (
                       <Cell key={entry.name} fill={entry.fill} />
                     ))}
                   </Pie>
